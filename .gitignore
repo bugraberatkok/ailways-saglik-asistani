@@ -1,0 +1,52 @@
+# Local assignment and AI planning files (project root only)
+/*.pdf
+/desicions.md
+/decisions.md
+/implementasyon-akisi.md
+/pdf-analizi.md
+/AGENTS.md
+/CLAUDE.md
+/GEMINI.md
+/.agents/
+/.claude/
+/.codex/
+/.codex-tmp/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+credentials.json
+credentials.*.json
+secrets.json
+
+# Dependencies and generated caches
+node_modules/
+.cache/
+.parcel-cache/
+.vite/
+coverage/
+playwright-report/
+test-results/
+*.log
+npm-debug.log*
+
+# Local Supabase state
+supabase/.temp/
+supabase/.branches/
+
+# Local editor and operating system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+
+# Build/test scratch space; deliverable source, SQL and workflow JSON stay tracked
+/tmp/
+/temp/
