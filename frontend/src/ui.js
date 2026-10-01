@@ -29,19 +29,19 @@ function el(tag, className, text) {
 }
 
 const MODE_BADGES = {
-  greeting: ['Selamla', 'bg-sky-100 text-sky-800'],
+  greeting: ['Selamla', 'bg-sky-100 text-sky-800 dark:text-sky-200'],
   symptom_analysis: ['Semptom analizi', 'bg-teal-100 text-teal-800'],
   emergency: ['ACİL', 'bg-red-600 text-white'],
   chat: ['Sohbet', 'bg-violet-100 text-violet-800'],
   booking: ['Randevu', 'bg-amber-100 text-amber-800'],
-  fallback: ['Bilgi', 'bg-slate-100 text-slate-700'],
+  fallback: ['Bilgi', 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'],
 };
 
 const URGENCY_BADGES = {
-  self_care: ['Evde izlem', 'bg-slate-100 text-slate-700'],
-  routine: ['Rutin muayene önerisi', 'bg-sky-50 text-sky-800 ring-1 ring-sky-200'],
-  soon: ['24-48 saat içinde muayene', 'bg-amber-50 text-amber-800 ring-1 ring-amber-200'],
-  emergency: ['Acil başvuru', 'bg-red-50 text-red-700 ring-1 ring-red-200'],
+  self_care: ['Evde izlem', 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'],
+  routine: ['Rutin muayene önerisi', 'bg-sky-50 dark:bg-sky-900/30 text-sky-800 dark:text-sky-200 ring-1 ring-sky-200'],
+  soon: ['24-48 saat içinde muayene', 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 ring-1 ring-amber-200'],
+  emergency: ['Acil başvuru', 'bg-red-50 dark:bg-red-950/40 text-red-700 ring-1 ring-red-200'],
 };
 
 const SEX_LABELS = { female: 'Kadın', male: 'Erkek', other: 'Diğer', declined: 'Paylaşmak istemedi', unknown: '—' };
@@ -98,10 +98,10 @@ export function renderProfile(profile, missingFields) {
 
   const ready = missingFields.length === 0;
   elements.profileStatus.textContent = ready ? 'Semptom analizi' : 'Selamla';
-  elements.profileStatus.className = `rounded-full px-2 py-0.5 text-xs font-medium ${ready ? 'bg-teal-100 text-teal-800' : 'bg-sky-100 text-sky-800'}`;
+  elements.profileStatus.className = `rounded-full px-2 py-0.5 text-xs font-medium ${ready ? 'bg-teal-100 text-teal-800' : 'bg-sky-100 text-sky-800 dark:text-sky-200'}`;
 
   if (!profile) {
-    body.append(el('p', 'text-slate-500', 'Henüz kayıt yok. Asistan sizi tanımak için birkaç soru soracak ve yanıtlarınızı buraya kaydedecek.'));
+    body.append(el('p', 'text-slate-500 dark:text-slate-400', 'Henüz kayıt yok. Asistan sizi tanımak için birkaç soru soracak ve yanıtlarınızı buraya kaydedecek.'));
     return;
   }
 
@@ -124,12 +124,12 @@ export function renderProfile(profile, missingFields) {
 
   const dl = el('dl', 'grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5');
   for (const [term, value] of rows) {
-    dl.append(el('dt', 'text-slate-500', term), el('dd', 'font-medium text-slate-800', value));
+    dl.append(el('dt', 'text-slate-500 dark:text-slate-400', term), el('dd', 'font-medium text-slate-800 dark:text-slate-200', value));
   }
   body.append(dl);
 
   if (!ready) {
-    body.append(el('p', 'mt-3 rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-800',
+    body.append(el('p', 'mt-3 rounded-lg bg-sky-50 dark:bg-sky-900/30 px-3 py-2 text-xs text-sky-800 dark:text-sky-200',
       `Eksik bilgiler: ${missingFields.map((f) => MISSING_LABELS[f] ?? f).join(', ')}. Asistan önce bunları tamamlayacak.`));
   }
 }
@@ -140,14 +140,14 @@ export function renderAppointments(appointments) {
   const list = elements.appointmentsList;
   list.replaceChildren();
   if (!appointments?.length) {
-    list.append(el('li', 'text-slate-500', 'Yaklaşan randevu yok.'));
+    list.append(el('li', 'text-slate-500 dark:text-slate-400', 'Yaklaşan randevu yok.'));
     return;
   }
   for (const a of appointments) {
-    const item = el('li', 'rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-200');
+    const item = el('li', 'rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2 ring-1 ring-slate-200 dark:ring-slate-800');
     item.append(
-      el('p', 'font-medium text-slate-800', `${a.weekday} ${a.date.split('-').reverse().join('.')} · ${a.time}`),
-      el('p', 'text-xs text-slate-500', `${a.doctor} · ${a.department}`),
+      el('p', 'font-medium text-slate-800 dark:text-slate-200', `${a.weekday} ${a.date.split('-').reverse().join('.')} · ${a.time}`),
+      el('p', 'text-xs text-slate-500 dark:text-slate-400', `${a.doctor} · ${a.department}`),
     );
     list.append(item);
   }
@@ -186,7 +186,7 @@ export function appendAssistantMessage({ reply, mode, urgency = null, createdAt 
   const isEmergency = mode === 'emergency' || urgency === 'emergency';
   const wrapper = el('div', 'flex flex-col items-start gap-1');
   const bubble = el('div', `max-w-[90%] space-y-2 rounded-2xl rounded-bl-md px-4 py-3 text-[15px] leading-relaxed shadow-sm ring-1 ${
-    isEmergency ? 'bg-red-50 text-red-950 ring-red-200' : 'bg-slate-50 text-slate-800 ring-slate-200'
+    isEmergency ? 'bg-red-50 dark:bg-red-950/40 text-red-950 dark:text-red-100 ring-red-200' : 'bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 ring-slate-200 dark:ring-slate-800'
   }`);
   bubble.append(renderRichText(reply));
 
@@ -204,7 +204,7 @@ export function appendAssistantMessage({ reply, mode, urgency = null, createdAt 
   if (slots.length && onSlot) {
     const chips = el('div', 'flex flex-wrap gap-2');
     for (const slot of slots) {
-      const chip = el('button', 'rounded-full bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100 disabled:opacity-50', slot.label);
+      const chip = el('button', 'rounded-full bg-amber-50 dark:bg-amber-900/30 px-3 py-1.5 text-sm font-medium text-amber-900 dark:text-amber-100 ring-1 ring-amber-300 hover:bg-amber-100 disabled:opacity-50', slot.label);
       chip.type = 'button';
       chip.addEventListener('click', () => {
         chips.querySelectorAll('button').forEach((b) => { b.disabled = true; });
@@ -220,9 +220,9 @@ export function appendAssistantMessage({ reply, mode, urgency = null, createdAt 
 }
 
 export function showTypingIndicator() {
-  const indicator = el('div', 'flex items-center gap-2 text-sm text-slate-500');
+  const indicator = el('div', 'flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400');
   indicator.setAttribute('role', 'status');
-  const dots = el('span', 'inline-flex gap-1 rounded-2xl bg-slate-100 px-3 py-2.5');
+  const dots = el('span', 'inline-flex gap-1 rounded-2xl bg-slate-100 dark:bg-slate-800 px-3 py-2.5');
   for (let i = 0; i < 3; i += 1) {
     const dot = el('span', 'size-1.5 animate-bounce rounded-full bg-slate-400');
     dot.style.animationDelay = `${i * 150}ms`;
@@ -237,8 +237,8 @@ export function showTypingIndicator() {
 export function showWelcome(onSuggestion, { isNewProfile }) {
   const box = el('div', 'mx-auto max-w-md py-8 text-center');
   box.append(
-    el('p', 'text-base font-semibold text-slate-900', 'Sohbete başlayın'),
-    el('p', 'mt-1 text-sm text-slate-500', isNewProfile
+    el('p', 'text-base font-semibold text-slate-900 dark:text-slate-100', 'Sohbete başlayın'),
+    el('p', 'mt-1 text-sm text-slate-500 dark:text-slate-400', isNewProfile
       ? 'Asistan sizi henüz tanımıyor; önce yaş, cinsiyet ve hastalık geçmişinizi soracak.'
       : 'Asistan profilinizi ve geçmiş kayıtlarınızı dikkate alarak yanıt verir.'),
   );
@@ -247,7 +247,7 @@ export function showWelcome(onSuggestion, { isNewProfile }) {
     ? ['Merhaba', 'Merhaba, adım Deniz. 29 yaşındayım.', 'Paylaşmak istemiyorum']
     : ['Merhaba', '3 gündür başım ağrıyor ve midem bulanıyor', 'Canım çok sıkkın bugün'];
   for (const example of examples) {
-    const button = el('button', 'rounded-full bg-white px-3 py-1.5 text-sm text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-teal-600', example);
+    const button = el('button', 'rounded-full bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 ring-1 ring-slate-300 dark:ring-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-teal-600', example);
     button.type = 'button';
     button.addEventListener('click', () => onSuggestion(example));
     suggestions.append(button);
@@ -259,7 +259,7 @@ export function showWelcome(onSuggestion, { isNewProfile }) {
 
 export function showStatus(text) {
   clearMessages();
-  elements.messageList.append(el('p', 'py-10 text-center text-sm text-slate-500', text));
+  elements.messageList.append(el('p', 'py-10 text-center text-sm text-slate-500 dark:text-slate-400', text));
 }
 
 // --- Hata ve form durumu ------------------------------------------------------------

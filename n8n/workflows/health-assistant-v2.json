@@ -40,42 +40,6 @@
         ]
       ]
     },
-    "DB: demo profiller": {
-      "main": [
-        [
-          {
-            "index": 0,
-            "node": "Destek yanıtını hazırla",
-            "type": "main"
-          }
-        ],
-        [
-          {
-            "index": 0,
-            "node": "Hatayı HTTP'ye çevir",
-            "type": "main"
-          }
-        ]
-      ]
-    },
-    "DB: konuşma geçmişi": {
-      "main": [
-        [
-          {
-            "index": 0,
-            "node": "Destek yanıtını hazırla",
-            "type": "main"
-          }
-        ],
-        [
-          {
-            "index": 0,
-            "node": "Hatayı HTTP'ye çevir",
-            "type": "main"
-          }
-        ]
-      ]
-    },
     "DB: turu kaydet": {
       "main": [
         [
@@ -89,68 +53,6 @@
           {
             "index": 0,
             "node": "Hatayı HTTP'ye çevir",
-            "type": "main"
-          }
-        ]
-      ]
-    },
-    "DB: veriyi sil": {
-      "main": [
-        [
-          {
-            "index": 0,
-            "node": "Destek yanıtını hazırla",
-            "type": "main"
-          }
-        ],
-        [
-          {
-            "index": 0,
-            "node": "Hatayı HTTP'ye çevir",
-            "type": "main"
-          }
-        ]
-      ]
-    },
-    "DELETE /user-data": {
-      "main": [
-        [
-          {
-            "index": 0,
-            "node": "Silme sorgusu geçerli mi?",
-            "type": "main"
-          }
-        ]
-      ]
-    },
-    "Destek yanıtını hazırla": {
-      "main": [
-        [
-          {
-            "index": 0,
-            "node": "Yanıt (destek)",
-            "type": "main"
-          }
-        ]
-      ]
-    },
-    "GET /history": {
-      "main": [
-        [
-          {
-            "index": 0,
-            "node": "Geçmiş sorgusu geçerli mi?",
-            "type": "main"
-          }
-        ]
-      ]
-    },
-    "GET /profiles": {
-      "main": [
-        [
-          {
-            "index": 0,
-            "node": "DB: demo profiller",
             "type": "main"
           }
         ]
@@ -208,24 +110,6 @@
         ]
       ]
     },
-    "Geçmiş sorgusu geçerli mi?": {
-      "main": [
-        [
-          {
-            "index": 0,
-            "node": "DB: konuşma geçmişi",
-            "type": "main"
-          }
-        ],
-        [
-          {
-            "index": 0,
-            "node": "Hatayı HTTP'ye çevir",
-            "type": "main"
-          }
-        ]
-      ]
-    },
     "Hatayı HTTP'ye çevir": {
       "main": [
         [
@@ -243,24 +127,6 @@
           {
             "index": 0,
             "node": "İsteği normalize et",
-            "type": "main"
-          }
-        ]
-      ]
-    },
-    "Silme sorgusu geçerli mi?": {
-      "main": [
-        [
-          {
-            "index": 0,
-            "node": "DB: veriyi sil",
-            "type": "main"
-          }
-        ],
-        [
-          {
-            "index": 0,
-            "node": "Hatayı HTTP'ye çevir",
             "type": "main"
           }
         ]
@@ -466,7 +332,7 @@
   "name": "Sağlık Asistanı v2",
   "nodes": [
     {
-      "id": "92934c81-fe1a-4e37-bda9-89e7edacebba",
+      "id": "63428b4d-34da-4929-8781-19bef962db08",
       "name": "112 yanıtını oluştur",
       "notes": "Model beklenmez; ~0,3 sn.",
       "notesInFlow": true,
@@ -474,26 +340,24 @@
         "assignments": {
           "assignments": [
             {
-              "id": "3f511738-4740-4e8a-b71d-17ee02318530",
+              "id": "0643c9d8-640b-4b3a-a736-761a3c039a2b",
               "name": "output",
               "type": "object",
               "value": "={{ { mode: 'emergency', urgency: 'emergency', reply: \"⚠️ Yazdıklarınız acil bir duruma işaret ediyor olabilir. **Lütfen hemen 112'yi arayın** veya en yakın acil servise gidin. Yalnızsanız yakınınızdan birine haber verin.\", assessment: { summary: ('Acil belirti bildirimi (kritik ifade): ' + $json.message).slice(0, 480), urgency: 'emergency', department: 'Acil Servis' } } }}"
             }
           ]
         },
-        "includeOtherFields": false,
-        "mode": "manual",
         "options": {}
       },
       "position": [
-        1400,
-        -260
+        1408,
+        -256
       ],
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4
     },
     {
-      "id": "b118eb7f-20a9-4c36-821f-e3724dd2e250",
+      "id": "460ff709-96f4-4837-b1df-8a40b1bdd88f",
       "name": "Bağlamı hazırla",
       "notes": "Code 1/2 — saf dönüşüm, karar vermez: eksik profil alanları ve ajanın okuyacağı bağlam metni.",
       "notesInFlow": true,
@@ -503,7 +367,7 @@
       },
       "position": [
         880,
-        -20
+        -16
       ],
       "type": "n8n-nodes-base.code",
       "typeVersion": 2
@@ -514,7 +378,7 @@
           "name": "Supabase Postgres (health_app)"
         }
       },
-      "id": "8131cdf6-b9c6-4bc8-b598-f8e036e86e1f",
+      "id": "26d36210-fdb9-45a2-a579-d17af23d35c2",
       "name": "bos_saatleri_getir",
       "parameters": {
         "descriptionType": "manual",
@@ -526,14 +390,14 @@
         "toolDescription": "Bir bölümde boş randevu saatlerini getirir. Tarihler YYYY-MM-DD, saatler HH:MM; bilinmeyen alanı boş bırak (\"öğleden sonra\" için baslangic_saati 12:00)."
       },
       "position": [
-        1700,
-        520
+        1712,
+        528
       ],
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6
     },
     {
-      "id": "1e302693-669d-4332-80d4-5f68d8b095d1",
+      "id": "3c673de6-ad6f-4c50-89e7-4b715d65711a",
       "name": "Çıktı kontrolü",
       "notes": "Code 2/2 — tek kontrol node'u: kurallar kodun başındaki tabloda.",
       "notesInFlow": true,
@@ -543,7 +407,7 @@
         "mode": "runOnceForEachItem"
       },
       "position": [
-        2700,
+        2704,
         0
       ],
       "type": "n8n-nodes-base.code",
@@ -555,7 +419,7 @@
           "name": "Supabase Postgres (health_app)"
         }
       },
-      "id": "cf98f4b9-b63e-4c03-b4f7-eb0381ff35fd",
+      "id": "67251a1d-2b29-495b-801d-71a03d452dcd",
       "name": "DB: bağlamı yükle",
       "onError": "continueErrorOutput",
       "parameters": {
@@ -566,8 +430,8 @@
         "query": "select health.get_chat_context($1::uuid, nullif($2, '')::uuid, $3::uuid) as context;"
       },
       "position": [
-        660,
-        -20
+        672,
+        -16
       ],
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6
@@ -578,51 +442,7 @@
           "name": "Supabase Postgres (health_app)"
         }
       },
-      "id": "4d65fd8b-a96f-49df-ac8f-955e14712255",
-      "name": "DB: demo profiller",
-      "onError": "continueErrorOutput",
-      "parameters": {
-        "operation": "executeQuery",
-        "options": {},
-        "query": "select health.list_demo_profiles() as profiles;"
-      },
-      "position": [
-        440,
-        1220
-      ],
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6
-    },
-    {
-      "credentials": {
-        "postgres": {
-          "name": "Supabase Postgres (health_app)"
-        }
-      },
-      "id": "1ffaa6df-ba8a-43b2-992d-604bbe04043f",
-      "name": "DB: konuşma geçmişi",
-      "onError": "continueErrorOutput",
-      "parameters": {
-        "operation": "executeQuery",
-        "options": {
-          "queryReplacement": "={{ [$json.query.user_id, $json.query.conversation_id ?? ''] }}"
-        },
-        "query": "select health.get_conversation_history($1::uuid, nullif($2, '')::uuid) as history;"
-      },
-      "position": [
-        440,
-        1440
-      ],
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6
-    },
-    {
-      "credentials": {
-        "postgres": {
-          "name": "Supabase Postgres (health_app)"
-        }
-      },
-      "id": "9a0783fc-bc9e-44c3-bdc6-57fc1f8e2f84",
+      "id": "81a35ed9-d95e-445e-9392-25bee2a2af2a",
       "name": "DB: turu kaydet",
       "onError": "continueErrorOutput",
       "parameters": {
@@ -633,61 +453,18 @@
         "query": "select health.save_chat_turn($1::jsonb) as saved;"
       },
       "position": [
-        2920,
+        2928,
         0
       ],
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6
     },
     {
-      "credentials": {
-        "postgres": {
-          "name": "Supabase Postgres (health_app)"
-        }
-      },
-      "id": "4dfa05ff-d8a1-4a0d-92ed-d40eb455a6d1",
-      "name": "DB: veriyi sil",
-      "onError": "continueErrorOutput",
-      "parameters": {
-        "operation": "executeQuery",
-        "options": {
-          "queryReplacement": "={{ [$json.query.user_id] }}"
-        },
-        "query": "select health.delete_user_data($1::uuid) as result;"
-      },
-      "position": [
-        440,
-        1660
-      ],
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6
-    },
-    {
-      "id": "25be52e4-dcfb-49f9-8b17-17df976c0eb4",
-      "name": "DELETE /user-data",
-      "parameters": {
-        "httpMethod": "DELETE",
-        "options": {
-          "allowedOrigins": "http://localhost:5173,http://127.0.0.1:5173"
-        },
-        "path": "health-assistant-v2/user-data",
-        "responseMode": "responseNode"
-      },
-      "position": [
-        0,
-        1660
-      ],
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
-      "webhookId": "0220db3e-0edc-4c87-9737-8f4fd29281e0"
-    },
-    {
-      "id": "388065f0-9658-485c-a646-82c062508c62",
+      "id": "6bceedcd-7cd1-4d99-a9dd-894f959ce4c0",
       "name": "denetci_ajani",
       "notes": "✅ Denetçi; ana ajan gerekli görürse çağırır.",
       "notesInFlow": true,
       "parameters": {
-        "hasOutputParser": false,
         "needsFallback": true,
         "options": {
           "maxIterations": 6,
@@ -697,85 +474,11 @@
         "toolDescription": "Bir yanıt taslağını kurallara göre kontrol eder (ilaç/doz/tanı, yönlendirme, \"yapay zeka\" ifadesi, uzunluk, hitap). Yalnızca emin olmadığında çağır. \"UYGUN\" veya düzeltilmiş yanıtı döner."
       },
       "position": [
-        2140,
-        260
+        2144,
+        272
       ],
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 3
-    },
-    {
-      "id": "930ab909-04fb-4b5b-8f93-260aa4c4dcbb",
-      "name": "Destek yanıtını hazırla",
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "9ad400a6-ca69-4830-8cc8-931780a1491b",
-              "name": "status",
-              "type": "number",
-              "value": "={{ $prevNode.name === 'DB: konuşma geçmişi' && $json.history.conversation_found === false ? 404 : 200 }}"
-            },
-            {
-              "id": "b901530f-df15-4d35-9a8d-cef9fedccdfd",
-              "name": "body",
-              "type": "object",
-              "value": "={{ (() => {\n  const missing = p => ['age', 'sex', 'medical_history'].filter((f, i) => !p || p[['age_status', 'sex', 'history_status'][i]] === 'unknown');\n  if ($prevNode.name === 'DB: demo profiller') return { profiles: $json.profiles.map(p => ({ ...p, missing_profile_fields: missing(p) })) };\n  if ($prevNode.name === 'DB: veriyi sil') return { deleted: $json.result.deleted === true };\n  const h = $json.history;\n  if (h.conversation_found === false) return { request_id: null, error: { code: 'conversation_not_found', message: 'Konuşma bulunamadı.', retryable: false } };\n  return { conversation_id: h.conversation_id, profile: h.profile, missing_profile_fields: missing(h.profile), messages: h.messages, appointments: h.appointments, active_module: h.active_module, offered_slots: h.pending_action?.type === 'slot_offer' ? h.pending_action.slots : [] };\n})() }}"
-            }
-          ]
-        },
-        "includeOtherFields": false,
-        "mode": "manual",
-        "options": {}
-      },
-      "position": [
-        700,
-        1440
-      ],
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4
-    },
-    {
-      "id": "11f56818-f0ef-4053-b5d0-3c9975d03121",
-      "name": "Geçmiş sorgusu geçerli mi?",
-      "parameters": {
-        "conditions": {
-          "combinator": "and",
-          "conditions": [
-            {
-              "id": "607e5336-b9fe-46e5-b1c6-ad19e0ca0804",
-              "leftValue": "={{ $json.query.user_id ?? \"\" }}",
-              "operator": {
-                "operation": "regex",
-                "type": "string"
-              },
-              "rightValue": "/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i"
-            },
-            {
-              "id": "7a8005a7-a022-45ee-8d70-9163cb68ec22",
-              "leftValue": "={{ !$json.query.conversation_id || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test($json.query.conversation_id) }}",
-              "operator": {
-                "operation": "true",
-                "singleValue": true,
-                "type": "boolean"
-              },
-              "rightValue": ""
-            }
-          ],
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          }
-        },
-        "options": {}
-      },
-      "position": [
-        220,
-        1440
-      ],
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3
     },
     {
       "credentials": {
@@ -783,7 +486,7 @@
           "name": "Google Gemini(PaLM) Api account"
         }
       },
-      "id": "98363519-668b-4cde-821e-0dc7b7aeb79f",
+      "id": "e4ade8d1-0943-4e69-99b0-6f8fb931c4b2",
       "name": "Gemini (ana)",
       "parameters": {
         "modelName": "models/gemini-3.5-flash-lite",
@@ -793,8 +496,8 @@
         }
       },
       "position": [
-        1340,
-        260
+        1344,
+        272
       ],
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2
@@ -805,7 +508,7 @@
           "name": "Google Gemini(PaLM) Api account"
         }
       },
-      "id": "cf6ff93b-b262-49a7-ace5-19408b15c82e",
+      "id": "d122044e-0002-4f64-a763-72e8800f634e",
       "name": "Gemini (yedek)",
       "parameters": {
         "modelName": "models/gemini-3.5-flash",
@@ -815,52 +518,14 @@
         }
       },
       "position": [
-        1480,
-        260
+        1488,
+        272
       ],
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2
     },
     {
-      "id": "b6bea052-c429-4d86-b798-ee068b65f9ae",
-      "name": "GET /history",
-      "parameters": {
-        "httpMethod": "GET",
-        "options": {
-          "allowedOrigins": "http://localhost:5173,http://127.0.0.1:5173"
-        },
-        "path": "health-assistant-v2/history",
-        "responseMode": "responseNode"
-      },
-      "position": [
-        0,
-        1440
-      ],
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
-      "webhookId": "f3927fed-9698-412c-9de6-22742c4ffc05"
-    },
-    {
-      "id": "27df9b5d-90b5-42c1-a145-0b9bd3851c6d",
-      "name": "GET /profiles",
-      "parameters": {
-        "httpMethod": "GET",
-        "options": {
-          "allowedOrigins": "http://localhost:5173,http://127.0.0.1:5173"
-        },
-        "path": "health-assistant-v2/profiles",
-        "responseMode": "responseNode"
-      },
-      "position": [
-        0,
-        1220
-      ],
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
-      "webhookId": "aa952df7-54b4-40b4-bff0-d339963fa56e"
-    },
-    {
-      "id": "ed9a353f-3a4d-4903-8b70-1855890cafd0",
+      "id": "9b56f593-6516-43c8-8d42-df8d0953e446",
       "name": "Hata yanıtı",
       "parameters": {
         "options": {
@@ -870,14 +535,14 @@
         "responseBody": "={{ JSON.stringify({ request_id: $json.request_id || null, error: { code: $json.code, retryable: ['ai_rate_limited', 'ai_unavailable', 'service_unavailable'].includes($json.code), message: ({\n  invalid_request: 'İstek geçersiz: request_id ve user_id UUID, mesaj 1–2000 karakter olmalı.',\n  conversation_not_found: 'Konuşma bulunamadı.',\n  request_id_conflict: 'Bu request_id başka bir istek için kullanılmış.',\n  demo_profile_protected: 'Demo profillerinin verileri silinemez.',\n  invalid_argument: 'Geçersiz parametre.',\n  ai_rate_limited: 'Yapay zeka servisinin kullanım limiti doldu. Lütfen biraz bekleyip tekrar deneyin.',\n  ai_unavailable: 'Yapay zeka servisine şu anda ulaşılamıyor. Lütfen tekrar deneyin.',\n  service_unavailable: 'Servis geçici olarak yanıt veremiyor. Lütfen tekrar deneyin.'\n})[$json.code] ?? 'Beklenmeyen hata.' } }) }}"
       },
       "position": [
-        1660,
+        1664,
         960
       ],
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5
     },
     {
-      "id": "3d37fa01-e8e2-44d0-8930-f190ab6ee8d0",
+      "id": "c144d83a-2d7b-4b39-9e0d-ca1f9c42ba93",
       "name": "Hatayı HTTP'ye çevir",
       "notes": "Adıma ve hataya göre tek bir hata kodu; kod → HTTP durumu \"Hata yanıtı\"nda.",
       "notesInFlow": true,
@@ -885,88 +550,84 @@
         "assignments": {
           "assignments": [
             {
-              "id": "9d4e380d-6cfd-48ce-a3e1-ac81fd85463f",
+              "id": "99226162-e433-4087-8a98-75fc5689cf9c",
               "name": "request_id",
               "type": "string",
               "value": "={{ $('İsteği normalize et').isExecuted ? $('İsteği normalize et').first().json.request_id : '' }}"
             },
             {
-              "id": "ecf33cb9-a65f-4dc2-a198-274a00a7f2e2",
+              "id": "8a0fb064-b173-4588-bd6a-5a2fad3e7cb9",
               "name": "code",
               "type": "string",
               "value": "={{ $prevNode.name.endsWith('geçerli mi?') ? 'invalid_request'\n  : $prevNode.name === 'Ön kontrol' ? 'conversation_not_found'\n  : (String($json.message ?? '') + ' ' + String($json.error?.message ?? $json.error ?? '') + ' ' + String($json.error?.description ?? '')).match(/conversation_not_found|request_id_conflict|demo_profile_protected|slot_taken|department_not_found|invalid_argument/)?.[0]\n    ?? (/\\b429\\b|quota|too many requests/i.test(String($json.error?.message ?? $json.error ?? '')) ? 'ai_rate_limited'\n    : $prevNode.name.startsWith('DB') ? 'service_unavailable' : 'ai_unavailable') }}"
             }
           ]
         },
-        "includeOtherFields": false,
-        "mode": "manual",
         "options": {}
       },
       "position": [
-        1380,
+        1392,
         960
       ],
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4
     },
     {
-      "id": "e2142b72-788a-46a1-8e5b-aa9b9cab2d35",
+      "id": "0b53dd81-d6fa-4674-bc57-76b709f0b30c",
       "name": "İsteği normalize et",
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "5dc317d1-a216-4b91-af2f-7178648630af",
+              "id": "b45ad444-66da-4bd5-a072-9b18830fbda6",
               "name": "request_id",
               "type": "string",
               "value": "={{ String($json.body?.request_id ?? '').toLowerCase() }}"
             },
             {
-              "id": "6ef48db8-c1dd-4e1c-aff9-ac4832e8abbd",
+              "id": "4a5a0469-a128-47c4-abcd-6bdf95dd69b0",
               "name": "user_id",
               "type": "string",
               "value": "={{ String($json.body?.user_id ?? '').toLowerCase() }}"
             },
             {
-              "id": "437ad33f-0607-48c0-8d09-2e10aa4680dc",
+              "id": "45a76eb4-f493-470e-a3d8-2f81cf6daac1",
               "name": "conversation_id",
               "type": "string",
               "value": "={{ $json.body?.conversation_id ? String($json.body.conversation_id).toLowerCase() : '' }}"
             },
             {
-              "id": "758e8bdc-e737-462e-8afa-a22c3ccc4532",
+              "id": "3f93902d-7e9f-4d00-b770-036905ff2b38",
               "name": "message",
               "type": "string",
               "value": "={{ String($json.body?.message ?? '').replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/g, '').trim() }}"
             },
             {
-              "id": "c7a10409-533b-4477-9738-4e0a142294be",
+              "id": "42943117-dd47-4eb7-990d-b7852915807b",
               "name": "unknown_fields",
               "type": "string",
               "value": "={{ Object.keys($json.body ?? {}).filter(k => !['request_id', 'user_id', 'conversation_id', 'message'].includes(k)).join(', ') }}"
             }
           ]
         },
-        "includeOtherFields": false,
-        "mode": "manual",
         "options": {}
       },
       "position": [
-        220,
+        224,
         0
       ],
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4
     },
     {
-      "id": "a7ed5a48-4123-4af0-8a62-42f094180a73",
+      "id": "51e206a5-b4e7-4cb3-8a6d-f41cb261249d",
       "name": "İstek geçerli mi?",
       "parameters": {
         "conditions": {
           "combinator": "and",
           "conditions": [
             {
-              "id": "0e068ab2-8653-42f9-92dc-23820814296c",
+              "id": "d3580d8a-ecb6-43e3-a0dd-807878765d7b",
               "leftValue": "={{ $json.request_id }}",
               "operator": {
                 "operation": "regex",
@@ -975,7 +636,7 @@
               "rightValue": "/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i"
             },
             {
-              "id": "f49870a8-713b-4faa-80a9-97a84dfe9245",
+              "id": "19549ad1-dc35-4dea-9915-3d478ba97fe6",
               "leftValue": "={{ $json.user_id }}",
               "operator": {
                 "operation": "regex",
@@ -984,7 +645,7 @@
               "rightValue": "/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i"
             },
             {
-              "id": "da4ca11e-8cf3-4cac-a5f4-277d12f2596c",
+              "id": "c09acb8d-cafd-479e-9b74-472acf177130",
               "leftValue": "={{ $json.conversation_id === '' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test($json.conversation_id) }}",
               "operator": {
                 "operation": "true",
@@ -994,7 +655,7 @@
               "rightValue": ""
             },
             {
-              "id": "e587f65d-fe55-4522-871e-b784c87b25d0",
+              "id": "2a799c19-cd82-444f-a1c9-802b74cbb411",
               "leftValue": "={{ $json.message.length >= 1 && $json.message.length <= 2000 }}",
               "operator": {
                 "operation": "true",
@@ -1004,7 +665,7 @@
               "rightValue": ""
             },
             {
-              "id": "4d9ab134-757c-4092-bc53-4dee19904567",
+              "id": "d0a4b13c-8e22-4231-af67-ce79012d7ac5",
               "leftValue": "={{ $json.unknown_fields === '' }}",
               "operator": {
                 "operation": "true",
@@ -1024,14 +685,14 @@
         "options": {}
       },
       "position": [
-        440,
+        448,
         0
       ],
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3
     },
     {
-      "id": "654e3bc0-b863-4efa-a198-26cf37aef5d2",
+      "id": "12bd0b5d-5a2f-44cd-8fec-9ebfffce461d",
       "name": "Not: 1 · Giriş",
       "parameters": {
         "color": 7,
@@ -1041,13 +702,13 @@
       },
       "position": [
         -80,
-        -330
+        -336
       ],
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1
     },
     {
-      "id": "8a651817-9770-4980-9f04-5ddca1e912e7",
+      "id": "563234e6-360f-48a2-a56b-970505736716",
       "name": "Not: 2 · Ajan",
       "parameters": {
         "color": 5,
@@ -1056,14 +717,14 @@
         "width": 1260
       },
       "position": [
-        1300,
-        -470
+        1312,
+        -464
       ],
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1
     },
     {
-      "id": "4dc272e3-9d8f-491d-b3c4-75e5527f2c9b",
+      "id": "64a61024-b028-4827-817c-e28c4f0d0c55",
       "name": "Not: 3 · Kontrol ve kayıt",
       "parameters": {
         "color": 4,
@@ -1073,48 +734,31 @@
       },
       "position": [
         2640,
-        -330
+        -336
       ],
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1
     },
     {
-      "id": "77436bca-0e6d-4355-9884-a2830cc26345",
-      "name": "Not: 4 · Destek",
-      "parameters": {
-        "color": 7,
-        "content": "## 4 · Destek uç noktaları\n`GET /profiles` profil seçici · `GET /history` kullanıcının son konuşması ve randevuları · `DELETE /user-data` demo dışı kullanıcının tüm verisi (randevuların saatleri serbest kalır).",
-        "height": 820,
-        "width": 1200
-      },
-      "position": [
-        -80,
-        1060
-      ],
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1
-    },
-    {
-      "id": "71df0b0a-94df-4b8f-b40d-460874a7c41a",
+      "id": "34600f3f-9d92-4d33-965f-1dbf59aa5b24",
       "name": "Not: Hatalar",
       "parameters": {
         "color": 7,
-        "content": "## ⚠️ Hatalar (tüm uç noktalar)\nGeçersiz istek, bulunamayan konuşma, veritabanı veya yapay zeka hatası tek yerde HTTP koduna çevrilir. Kullanıcıya iç ayrıntı gösterilmez; tekrar denenebilir hatalar işaretlenir.",
+        "content": "## ⚠️ Hatalar\nGeçersiz istek, bulunamayan konuşma, veritabanı veya yapay zeka hatası tek yerde HTTP koduna çevrilir. Kullanıcıya iç ayrıntı gösterilmez; tekrar denenebilir hatalar işaretlenir.",
         "height": 300,
         "width": 640
       },
       "position": [
-        1300,
-        820
+        1312,
+        832
       ],
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1
     },
     {
-      "id": "ca865344-1ca3-4a97-886d-5343c122653d",
+      "id": "b7310cfe-6fff-4a69-ad4d-c2ba1830abdb",
       "name": "Ön kontrol",
       "parameters": {
-        "mode": "rules",
         "options": {
           "fallbackOutput": "extra",
           "renameFallbackOutput": "Ajana gönder"
@@ -1126,7 +770,7 @@
                 "combinator": "and",
                 "conditions": [
                   {
-                    "id": "f8126583-bf5d-4877-b555-3e55bff36992",
+                    "id": "58c31406-304e-409f-af63-992e7755306e",
                     "leftValue": "={{ $json.replay !== null }}",
                     "operator": {
                       "operation": "true",
@@ -1140,7 +784,7 @@
                   "caseSensitive": true,
                   "leftValue": "",
                   "typeValidation": "strict",
-                  "version": 2
+                  "version": 3
                 }
               },
               "outputKey": "Tekrar istek",
@@ -1151,7 +795,7 @@
                 "combinator": "and",
                 "conditions": [
                   {
-                    "id": "8a140cf3-3b45-41da-bed0-4bdd71b73f82",
+                    "id": "f753943c-36de-42e5-ac12-eab329341082",
                     "leftValue": "={{ $json.message.toLocaleLowerCase('tr-TR') }}",
                     "operator": {
                       "operation": "regex",
@@ -1161,10 +805,10 @@
                   }
                 ],
                 "options": {
-                  "caseSensitive": false,
+                  "caseSensitive": true,
                   "leftValue": "",
                   "typeValidation": "strict",
-                  "version": 2
+                  "version": 3
                 }
               },
               "outputKey": "🔴 Kritik kelime",
@@ -1175,7 +819,7 @@
                 "combinator": "and",
                 "conditions": [
                   {
-                    "id": "d7ef483a-0ea0-4158-b53b-d8a7cec55d23",
+                    "id": "5a1c934b-adec-45ee-9920-27b348eb2bd5",
                     "leftValue": "={{ $json.conversation_found }}",
                     "operator": {
                       "operation": "false",
@@ -1189,7 +833,7 @@
                   "caseSensitive": true,
                   "leftValue": "",
                   "typeValidation": "strict",
-                  "version": 2
+                  "version": 3
                 }
               },
               "outputKey": "Konuşma bulunamadı",
@@ -1199,14 +843,14 @@
         }
       },
       "position": [
-        1100,
-        -20
+        1104,
+        -16
       ],
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4
     },
     {
-      "id": "fea6cb79-9b91-4cd9-8fc3-d78524455d14",
+      "id": "6fd462ac-abf2-4295-af33-93c1fa8b518c",
       "name": "POST /chat",
       "parameters": {
         "httpMethod": "POST",
@@ -1222,15 +866,14 @@
       ],
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "229e4311-3e3b-46ff-b8d1-6a17f9162b9d"
+      "webhookId": "5b62e3f6-e2f7-4ba2-af71-cb7b94e343f6"
     },
     {
-      "id": "077f75b6-4ac0-4256-bf27-e69dbc0aa575",
+      "id": "d893e528-9df4-4d80-90b0-665c98909bed",
       "name": "randevu_ajani",
       "notes": "📅 Randevu uzmanı; 4 veritabanı aracı kullanır.",
       "notesInFlow": true,
       "parameters": {
-        "hasOutputParser": false,
         "needsFallback": true,
         "options": {
           "maxIterations": 6,
@@ -1240,8 +883,8 @@
         "toolDescription": "Boş saatleri bulur, randevu oluşturur, randevuları listeler veya iptal eder. Randevu, boş saat, randevularım, iptal veya bekleyen teklife verilen \"14:00\" gibi cevaplarda çağır. Girdi: kullanıcının randevu isteği."
       },
       "position": [
-        1900,
-        260
+        1904,
+        272
       ],
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 3
@@ -1252,7 +895,7 @@
           "name": "Supabase Postgres (health_app)"
         }
       },
-      "id": "94eaf3ad-4e53-43a1-9e54-fa0cd694662e",
+      "id": "af370447-c188-49c6-a476-6003f6d42509",
       "name": "randevu_iptal",
       "parameters": {
         "descriptionType": "manual",
@@ -1264,7 +907,7 @@
         "toolDescription": "Kullanıcının bir randevusunu iptal eder. randevu_no bağlamdaki randevular bölümünden alınır."
       },
       "position": [
-        2120,
+        2128,
         640
       ],
       "type": "n8n-nodes-base.postgresTool",
@@ -1276,7 +919,7 @@
           "name": "Supabase Postgres (health_app)"
         }
       },
-      "id": "3d3ac89c-e785-4848-86ac-1d3ff3a4335d",
+      "id": "595c0d17-f1d5-4d5f-957d-a39f293fec6c",
       "name": "randevu_olustur",
       "parameters": {
         "descriptionType": "manual",
@@ -1300,7 +943,7 @@
           "name": "Supabase Postgres (health_app)"
         }
       },
-      "id": "0ad39106-27fc-4330-8254-cfc11cb9aed7",
+      "id": "9dc26378-3111-485b-9e39-b746ce1b1e45",
       "name": "randevularimi_getir",
       "parameters": {
         "descriptionType": "manual",
@@ -1312,19 +955,18 @@
         "toolDescription": "Kullanıcının yaklaşan ve son randevularını getirir. Kullanıcı kimliği otomatik eklenir."
       },
       "position": [
-        1980,
-        520
+        1984,
+        528
       ],
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6
     },
     {
-      "id": "29966289-b28f-482e-94f3-983cbf11fa1d",
+      "id": "38c0ee08-1c88-4af3-8727-c6ea1290238c",
       "name": "semptom_ajani",
       "notes": "🩺 Semptom analizi uzmanı (\"siz\").",
       "notesInFlow": true,
       "parameters": {
-        "hasOutputParser": false,
         "needsFallback": true,
         "options": {
           "maxIterations": 6,
@@ -1334,47 +976,14 @@
         "toolDescription": "Bedensel şikayeti kullanıcının profili, geçmiş kayıtları ve randevularıyla birlikte değerlendirir. Profil tamsa ve kullanıcı bir şikayet anlatıyorsa çağır. Girdi: şikayetle ilgili kısa not."
       },
       "position": [
-        1660,
-        260
+        1664,
+        272
       ],
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 3
     },
     {
-      "id": "7b2efcf0-d0ae-4f14-bd52-311d38315051",
-      "name": "Silme sorgusu geçerli mi?",
-      "parameters": {
-        "conditions": {
-          "combinator": "and",
-          "conditions": [
-            {
-              "id": "71b9d98f-d44b-43bc-8d89-7946923f4efd",
-              "leftValue": "={{ $json.query.user_id ?? \"\" }}",
-              "operator": {
-                "operation": "regex",
-                "type": "string"
-              },
-              "rightValue": "/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i"
-            }
-          ],
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          }
-        },
-        "options": {}
-      },
-      "position": [
-        220,
-        1660
-      ],
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3
-    },
-    {
-      "id": "041c69f4-dcd1-44fc-be94-53c515ce1810",
+      "id": "aad0c76f-3281-4e80-a42b-0e0db16e4d35",
       "name": "Şifa (ana ajan)",
       "notes": "Karar verir, gerekirse alt ajan çağırır, yapılandırılmış yanıt döner.",
       "notesInFlow": true,
@@ -1390,45 +999,28 @@
         "text": "={{ $json.prompt_input }}"
       },
       "position": [
-        1400,
+        1408,
         0
       ],
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1
     },
     {
-      "id": "cc7df63a-6f32-4778-97a9-88ef08b50224",
+      "id": "c86e0907-5d80-4b9b-b6df-8cc3c3a73a47",
       "name": "Şifa yanıt şeması",
       "parameters": {
         "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"reply\": {\n      \"type\": \"string\",\n      \"maxLength\": 1200\n    },\n    \"mode\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"chat\",\n        \"greeting\",\n        \"symptom_analysis\",\n        \"booking\"\n      ]\n    },\n    \"mood\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"calm\",\n        \"worried\",\n        \"sad\",\n        \"lonely\",\n        \"anxious\",\n        \"angry\",\n        \"neutral\"\n      ]\n    },\n    \"urgency\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"none\",\n        \"self_care\",\n        \"routine\",\n        \"soon\",\n        \"emergency\"\n      ]\n    },\n    \"self_harm_risk\": {\n      \"type\": \"boolean\"\n    },\n    \"profile_updates\": {\n      \"type\": \"object\",\n      \"description\": \"Kullanıcının açıkça beyan ettiği profil bilgileri. Yeni bilgi yoksa boş nesne.\",\n      \"properties\": {\n        \"display_name\": {\n          \"type\": \"string\"\n        },\n        \"age\": {\n          \"type\": \"integer\",\n          \"description\": \"Yaş (yıl)\"\n        },\n        \"age_declined\": {\n          \"type\": \"boolean\"\n        },\n        \"sex\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"female\",\n            \"male\",\n            \"other\",\n            \"declined\"\n          ]\n        },\n        \"history_status\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"provided\",\n            \"none\",\n            \"declined\"\n          ]\n        },\n        \"conditions_add\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"conditions_remove\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"medications_add\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"medications_remove\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"allergies_add\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"allergies_remove\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    },\n    \"assessment\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"summary\": {\n          \"type\": \"string\"\n        },\n        \"urgency\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"self_care\",\n            \"routine\",\n            \"soon\",\n            \"emergency\"\n          ]\n        },\n        \"department\": {\n          \"type\": \"string\"\n        }\n      }\n    },\n    \"offered_slots\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"slot_id\": {\n            \"type\": \"string\"\n          },\n          \"label\": {\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"slot_id\",\n          \"label\"\n        ]\n      }\n    },\n    \"booked_appointment_id\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"reply\",\n    \"mode\"\n  ]\n}",
         "schemaType": "manual"
       },
       "position": [
-        2380,
-        260
+        2384,
+        272
       ],
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3
     },
     {
-      "id": "74d6faca-9b74-43ba-b8a1-18b1598cad6a",
-      "name": "Yanıt (destek)",
-      "parameters": {
-        "options": {
-          "responseCode": "={{ $json.status }}"
-        },
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify($json.body) }}"
-      },
-      "position": [
-        920,
-        1440
-      ],
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.5
-    },
-    {
-      "id": "2b3fd5a5-d943-4720-bb70-d827fd11474d",
+      "id": "107d3e55-3f94-429d-ba38-766c650d5af2",
       "name": "Yanıt gönder",
       "parameters": {
         "options": {
@@ -1445,25 +1037,23 @@
       "typeVersion": 1.5
     },
     {
-      "id": "498659d3-2225-460d-a204-63f05309a360",
+      "id": "a263f1b2-cebe-42c6-96bd-829dcf74ae69",
       "name": "Yanıtı hazırla",
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "965aab33-7364-492f-aafd-5c8b3540ec05",
+              "id": "24a24202-9739-4e7e-b5bc-4544e0035e11",
               "name": "body",
               "type": "object",
               "value": "={{ (s => ({\n  request_id: s.request_id,\n  conversation_id: s.conversation_id,\n  mode: s.mode,\n  reply: s.reply,\n  urgency: s.urgency ?? null,\n  replayed: s.replayed === true,\n  profile: s.profile ?? null,\n  missing_profile_fields: ['age', 'sex', 'medical_history'].filter((f, i) => !s.profile || s.profile[['age_status', 'sex', 'history_status'][i]] === 'unknown'),\n  appointment: s.appointment ?? null,\n  appointments: s.appointments ?? [],\n  offered_slots: s.pending_action?.type === 'slot_offer' ? s.pending_action.slots : [],\n  error: null\n}))($json.saved ?? { ...$json.replay, request_id: $json.request_id, replayed: true, profile: $json.profile, appointments: $json.appointments }) }}"
             }
           ]
         },
-        "includeOtherFields": false,
-        "mode": "manual",
         "options": {}
       },
       "position": [
-        3140,
+        3152,
         0
       ],
       "type": "n8n-nodes-base.set",

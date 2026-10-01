@@ -217,3 +217,26 @@ test('geçmiş ve bağlam: demo kullanıcısının seed randevusu görünür; me
   assert.deepEqual(ctx.current_report, { summary: 'Baş ağrısı', urgency: 'routine', department: 'Nöroloji' });
   assert.equal(ctx.past_reports.length, 0);
 });
+
+test('arayüz API\'si: anon rolü yalnızca public sarmalayıcıları çağırabilir, health şemasına erişemez', async () => {
+  await admin.query('begin');
+  try {
+    await admin.query('set local role anon');
+    const { rows: [{ r: profiles }] } = await admin.query('select public.demo_profiles() as r');
+    assert.equal(profiles.length, 15);
+    const { rows: [{ r: history }] } = await admin.query('select public.conversation_history($1) as r', [AYSE]);
+    assert.equal(history.profile.display_name, 'Ayşe Yılmaz');
+    await assert.rejects(admin.query('select public.delete_user_data($1)', [AYSE]), /demo_profile_protected/);
+  } finally {
+    await admin.query('rollback');
+  }
+  for (const sql of ['select health.list_demo_profiles()', 'select * from health.profiles limit 1']) {
+    await admin.query('begin');
+    try {
+      await admin.query('set local role anon');
+      await assert.rejects(admin.query(sql), /permission denied/, sql);
+    } finally {
+      await admin.query('rollback');
+    }
+  }
+});

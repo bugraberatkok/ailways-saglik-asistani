@@ -3,6 +3,7 @@
 import { api } from './api.js';
 import { storage } from './storage.js';
 import * as ui from './ui.js';
+import { initThemeToggle } from './theme.js';
 
 const state = {
   demoProfiles: [],
@@ -240,4 +241,5 @@ async function init() {
   else createNewUser();
 }
 
+initThemeToggle(document.getElementById('theme-toggle'));
 init();

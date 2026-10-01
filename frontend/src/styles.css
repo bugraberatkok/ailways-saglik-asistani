@@ -4,6 +4,14 @@
 @source "../index.html";
 @source "./";
 
+/* Koyu tema <html data-theme="dark"> ile açılır (src/theme.js). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@layer base {
+  :root { color-scheme: light; }
+  [data-theme="dark"] { color-scheme: dark; }
+}
+
 @layer base {
   html {
     font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
