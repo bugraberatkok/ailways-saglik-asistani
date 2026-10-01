@@ -50,12 +50,19 @@ try {
     }
   }
 
+  // Parola yalnızca rol henüz giriş yapamıyorsa (ilk kurulum) veya açıkça istenirse atanır.
+  // Her migrate'te yeniden atamak SCRAM özetini değiştirir; Supabase pooler eski özeti bir süre
+  // önbellekte tuttuğu için o arada n8n ve testlerin bağlantıları reddedilir.
   const appPassword = optionalEnv('APP_DB_PASSWORD');
-  if (appPassword) {
+  const rotate = process.argv.includes('--rotate-app-password');
+  const { rows: [role] } = await client.query("select rolcanlogin from pg_roles where rolname = 'health_app'");
+  if (!appPassword) {
+    console.warn('APP_DB_PASSWORD tanımlı değil: health_app rolü giriş yapamaz (n8n bağlanamaz).');
+  } else if (!role.rolcanlogin || rotate) {
     await client.query(`alter role health_app with login password ${client.escapeLiteral(appPassword)}`);
     console.log('health_app rolüne giriş yetkisi ve parola atandı.');
   } else {
-    console.warn('APP_DB_PASSWORD tanımlı değil: health_app rolü giriş yapamaz (n8n bağlanamaz).');
+    console.log('health_app parolası değiştirilmedi (değiştirmek için: npm run db:migrate -- --rotate-app-password).');
   }
 } finally {
   await client.end();

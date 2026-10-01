@@ -461,3 +461,14 @@ Toplam ≈ 6–7 iş günü.
 | `tests/unit/workflow-shape` | ✅ İskelet: export sözleşmesi (credential ID yok, health.* çağrıları, CORS, execution saklama) + pull normalizasyonu; v2 kuralları `todo`. |
 
 Kullanıcıya bırakılan Faz 0 testleri: router modelinin planlanan 20 örneğe tamamlanması (kalan 14 örnek, ör. "Merhaba", olumsuzlama, karışık beden+zihin, iptal/listeleme) ve v1 e2e regresyonu (`npm run test:e2e`, ≈ 12 çağrı). Deneme workflow'u "Faz 0 · deneme (geçici)" n8n'de **pasif** durumdadır; silinmesi kullanıcı onayına bırakıldı.
+
+## 13. Faz 1 sonuçları (2026-10-01)
+
+| Kabul kriteri | Sonuç |
+|---|---|
+| Migration'lar | ✅ `20261001100000_v2_booking` (bölüm/doktor/slot/randevu + randevu fonksiyonları), `…100100_v2_chat_api` (sohbet API'si genişletmesi), `…100200_fix_ensure_slots` (`generate_series(time, …)` PostgreSQL'de yok; ADR-14 gereği yeni migration ile düzeltildi). |
+| Plandan sapma | v1 fonksiyonlarının yanına v2 "overload"ları açmak yerine **aynı imzalar geriye uyumlu genişletildi** (yalnızca opsiyonel yeni alanlar). İki paralel fonksiyon seti ve Faz 5'teki "v1 imzalarını düşür" migration'ı gereksiz kaldı. Kanıt: v1'in 14 DB testi ve canlı v1 workflow'u (profiller, geçmiş, acil yolu) değişmeden çalışıyor. |
+| Seed | ✅ 6 bölüm (eş anlamlılarla), 12 doktor, 14 günlük saatler (hafta içi 09:00–16:30, öğle arası hariç), ~%25'i deterministik "dolu", Ayşe ve Mehmet'e birer yaklaşan randevu. İki kez çalıştırıldı, sonuç aynı. |
+| `npm run test:db` | ✅ 28/28 (v1 14 + v2 14): en az yetki, `ensure_slots` günde bir kez, eş anlamlı bölüm eşleşmesi, tarih/saat filtresi, çifte rezervasyon (eşzamanlı → 1 başarılı + `slot_taken`), `request_id` idempotency, iptal → slot serbest, silme → slot serbest, `active_module`/`pending_action`/`mood`/`validation`, sahte onayın kaydedilmemesi. |
+| Bulunan operasyonel hata | `db:migrate` her çalıştığında `health_app` parolasını yeniden atıyordu; Supabase pooler eski SCRAM özetini önbellekte tuttuğu için migrate sonrasında bağlantılar kısa süre reddediliyordu (Faz 0 öncesi "geçici" DB test hatasının da nedeni; canlı n8n'i de etkileyebilirdi). Artık parola yalnızca ilk kurulumda veya `--rotate-app-password` ile atanıyor. |
+| Gemini çağrısı | 0 |
