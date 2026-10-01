@@ -239,3 +239,13 @@ test('n8n:pull normalizasyonu: meta alanları ve credential ID\'leri atılır, s
   assert.deepEqual(result.settings, { executionOrder: 'v1' });
   assert.equal(slugify('Şifa (ana ajan)'), 'sifa-ana-ajan');
 });
+
+test('Bağlamı hazırla: sohbette soru/destek dönüşümü önceki yanıta göre belirlenir', async () => {
+  const run = (history) => runCode('Bağlamı hazırla', { context: { ...CONTEXT, pending_action: null, history } }, { 'İsteği normalize et': REQUEST });
+  const first = await run([]);
+  assert.match(first.prompt_input, /bu yanıtın biçimi: empatiden sonra .*soruyla BİTİR/);
+  const afterQuestion = await run([{ role: 'user', content: 'kavga ettim' }, { role: 'assistant', content: 'Seni en çok ne kırdı?' }]);
+  assert.match(afterQuestion.prompt_input, /bu yanıtın biçimi: soru SORMA/);
+  const afterSupport = await run([{ role: 'user', content: 'çağırmadılar' }, { role: 'assistant', content: 'Üzülmende çok haklısın.' }]);
+  assert.match(afterSupport.prompt_input, /soruyla BİTİR/);
+});

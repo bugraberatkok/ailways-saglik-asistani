@@ -67,6 +67,10 @@ const pending = ctx.pending_action?.type === 'slot_offer'
 
 const message = clean(request.message, 2000);
 
+// Önceki asistan yanıtı soru içeriyor muydu? (sohbette soru/destek dönüşümü için; model hesaplamasın)
+const lastAssistant = [...(ctx.history ?? [])].reverse().find((m) => m.role === 'assistant');
+const askedBefore = lastAssistant ? lastAssistant.content.includes('?') : false;
+
 // Router'a kısa bağlam (hızlı model): yalnızca yönlendirme için gerekenler.
 // Ajana tam bağlam.
 const promptInput = [
@@ -78,6 +82,8 @@ const promptInput = [
   '<bekleyen_teklif>', pending, '</bekleyen_teklif>',
   '<konusma_gecmisi>', history, '</konusma_gecmisi>',
   '<kullanici_mesaji>', message, '</kullanici_mesaji>',
+  // Sohbet modunda soru/destek dönüşümü: önceki yanıt soru içeriyorsa bu tur destekle biter.
+  `Sohbet modunda bu yanıtın biçimi: ${askedBefore ? 'soru SORMA; kabul ve destekle bitir.' : 'empatiden sonra yanıtı merakla sorulmuş TEK bir açık uçlu soruyla BİTİR.'}`,
 ].join('\n');
 
 return {
