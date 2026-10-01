@@ -1,6 +1,6 @@
 // n8n node: Bağlamı hazırla (n8n:pull ile üretilmiştir; kaynak n8n arayüzüdür)
 // BAĞLAMI HAZIRLA — saf dönüşüm, karar vermez.
-// Veritabanından gelen profil, geçmiş ve randevuları router ve modüllerin okuyacağı
+// Veritabanından gelen profil, geçmiş ve randevuları ajanın okuyacağı
 // etiketli metin bölümlerine çevirir. Kullanıcının yazdığı metin "veri" olarak
 // etiketler içine konur; etiket taklidi temizlenir (prompt injection'a karşı).
 
@@ -62,24 +62,13 @@ const history = (ctx.history ?? [])
   .join('\n') || 'Bu konuşmanın ilk mesajı.';
 
 const pending = ctx.pending_action?.type === 'slot_offer'
-  ? ctx.pending_action.slots.map((s, i) => `${i + 1}) ${s.weekday} ${s.date} ${s.time}, ${s.doctor} [slot_id: ${s.slot_id}]`).join('\n')
+  ? ctx.pending_action.slots.map((s, i) => `${i + 1}) ${s.label} [slot_id: ${s.slot_id}]`).join('\n')
   : 'yok';
 
 const message = clean(request.message, 2000);
 
 // Router'a kısa bağlam (hızlı model): yalnızca yönlendirme için gerekenler.
-const routerInput = [
-  `Bugün: ${today} (${weekday})`,
-  `Aktif modül: ${ctx.active_module ?? 'yok'}`,
-  `Bekleyen saat teklifi: ${pending === 'yok' ? 'yok' : 'var'}`,
-  `Profil: ${missingProfileFields.length ? 'eksik' : 'tam'}`,
-  '<konusma_gecmisi>',
-  (ctx.history ?? []).slice(-6).map((m) => `[${m.role === 'assistant' ? 'asistan' : 'kullanıcı'}]: ${clean(m.content, 300)}`).join('\n') || 'yok',
-  '</konusma_gecmisi>',
-  '<kullanici_mesaji>', message, '</kullanici_mesaji>',
-].join('\n');
-
-// Modüllere tam bağlam.
+// Ajana tam bağlam.
 const promptInput = [
   `Bugün: ${today} (${weekday})`,
   '<profil>', profileText(), '</profil>',
@@ -101,7 +90,6 @@ return {
     active_module: ctx.active_module ?? null,
     pending_action: ctx.pending_action ?? null,
     appointments: ctx.appointments ?? [],
-    router_input: routerInput,
     prompt_input: promptInput,
   },
 };

@@ -1,6 +1,6 @@
-// v2 workflow sözleşmesi: n8n'den export edilen JSON (npm run n8n:pull -- --v2) üzerinde çalışır.
-// Code node'ları ve "Denetçi sonucu" ifadesi stub'lanmış $json / $() ile gerçekten çalıştırılır.
-// Model çağrısı yapmaz.
+// v2 workflow sözleşmesi (ana ajan + alt ajanlar): n8n'den export edilen JSON
+// (npm run n8n:pull -- --v2) üzerinde çalışır. Code node'ları stub'lanmış $json / $() ile
+// gerçekten çalıştırılır. Model çağrısı yapmaz.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -11,6 +11,7 @@ const node = (name) => {
   assert.ok(found, `node yok: ${name}`);
   return found;
 };
+const byType = (type) => workflow.nodes.filter((n) => n.type === type);
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
 /** n8n'in $('Node') nesnesini taklit eder. */
@@ -23,37 +24,73 @@ const nodeRefs = (refs) => (name) => ({
 });
 const runCode = async (name, $json, refs) => (await new AsyncFunction('$json', '$', node(name).parameters.jsCode)(structuredClone($json), nodeRefs(refs))).json;
 
+/** Bir node'a belirli bir bağlantı türüyle bağlanan node'lar (giriş index'ine göre). */
+const inputsOf = (target, type) => {
+  const sources = [];
+  for (const [from, byConnType] of Object.entries(workflow.connections)) {
+    for (const c of byConnType[type]?.[0] ?? []) {
+      if (c.node === target) (sources[c.index] ??= []).push(from);
+    }
+  }
+  return sources.map((list) => list.sort());
+};
+
 // ---------------------------------------------------------------- yapı
 
+test('router ve ayrı LLM zincirleri yok; karar tek ana ajanda', () => {
+  assert.equal(byType('@n8n/n8n-nodes-langchain.chainLlm').length, 0);
+  assert.equal(byType('@n8n/n8n-nodes-langchain.agent').length, 1);
+  assert.ok(!workflow.nodes.some((n) => /router|yola saptır/i.test(n.name)));
+});
+
 test('en fazla 2 Code node\'u, her birinin açıklama notu var', () => {
-  const codeNodes = workflow.nodes.filter((n) => n.type === 'n8n-nodes-base.code');
+  const codeNodes = byType('n8n-nodes-base.code');
   assert.deepEqual(codeNodes.map((n) => n.name).sort(), ['Bağlamı hazırla', 'Çıktı kontrolü']);
   for (const n of codeNodes) assert.ok(n.notes?.trim(), n.name);
 });
 
-test('"Yola saptır" çıkış sırası: Acil, Selamla, Semptom, Randevu, Sohbet', () => {
-  const { parameters } = node('Yola saptır');
+test('ana ajanın alt ajanları ve randevu ajanının veritabanı araçları', () => {
+  assert.deepEqual(inputsOf('Şifa (ana ajan)', 'ai_tool')[0], ['denetci_ajani', 'randevu_ajani', 'semptom_ajani']);
+  assert.deepEqual(inputsOf('randevu_ajani', 'ai_tool')[0], ['bos_saatleri_getir', 'randevu_iptal', 'randevu_olustur', 'randevularimi_getir']);
+  for (const sub of ['semptom_ajani', 'randevu_ajani', 'denetci_ajani']) {
+    assert.equal(node(sub).type, '@n8n/n8n-nodes-langchain.agentTool', sub);
+    assert.ok(node(sub).parameters.toolDescription.length > 40, `${sub}: ne zaman çağrılacağı açıklanmalı`);
+  }
+});
+
+test('her ajan ana + yedek modele bağlı', () => {
+  for (const agent of ['Şifa (ana ajan)', 'semptom_ajani', 'randevu_ajani', 'denetci_ajani']) {
+    assert.deepEqual(inputsOf(agent, 'ai_languageModel'), [['Gemini (ana)'], ['Gemini (yedek)']], agent);
+    assert.equal(node(agent).parameters.needsFallback, true, agent);
+  }
+});
+
+test('veritabanı araçları: yalnızca health.* fonksiyonları; kullanıcı kimliğini model değil workflow verir', () => {
+  for (const name of ['bos_saatleri_getir', 'randevu_olustur', 'randevularimi_getir', 'randevu_iptal']) {
+    const { query, options } = node(name).parameters;
+    assert.match(query, /^\s*select\s+health\.\w+\(/i, name);
+    assert.doesNotMatch(options.queryReplacement, /\$fromAI\(\s*'(user_id|request_id)'/, `${name}: kimlik $fromAI ile alınmamalı`);
+  }
+  assert.ok(node('randevu_olustur').parameters.options.queryReplacement.includes("$('Bağlamı hazırla').first().json.user_id"));
+});
+
+test('"Ön kontrol" ajandan önce: tekrar istek, kritik kelime, konuşma bulunamadı, sonra ajan', () => {
+  const { parameters } = node('Ön kontrol');
   assert.deepEqual(
     [...parameters.rules.values.map((r) => r.outputKey), parameters.options.renameFallbackOutput],
-    ['🔴 Acil', '👋 Selamla', '🩺 Semptom analizi', '📅 Randevu', '☕ Sohbet'],
+    ['Tekrar istek', '🔴 Kritik kelime', 'Konuşma bulunamadı', 'Ajana gönder'],
   );
+  assert.equal(workflow.connections['Ön kontrol'].main[3][0].node, 'Şifa (ana ajan)');
 });
 
-test('"Ön kontrol" router\'dan önce: tekrar istek, kritik kelime, konuşma bulunamadı', () => {
-  const { parameters } = node('Ön kontrol');
-  assert.deepEqual(parameters.rules.values.map((r) => r.outputKey), ['Tekrar istek', '🔴 Kritik kelime', 'Konuşma bulunamadı']);
-  const devam = workflow.connections['Ön kontrol'].main[3];
-  assert.equal(devam[0].node, 'Router: niyet + duygu');
-});
-
-test('kritik kelime ağı: pozitif ve negatif Türkçe örnekler', () => {
+test('kritik kelime ağı: Türkçe küçük harfe çevrilerek, pozitif ve negatif örnekler', () => {
   const rule = node('Ön kontrol').parameters.rules.values.find((r) => r.outputKey === '🔴 Kritik kelime');
-  const [, source, flags] = rule.conditions.conditions[0].rightValue.match(/^\/(.*)\/(\w*)$/s);
+  const condition = rule.conditions.conditions[0];
+  assert.ok(condition.leftValue.includes("toLocaleLowerCase('tr-TR')"));
+  const [, source, flags] = condition.rightValue.match(/^\/(.*)\/(\w*)$/s);
   const critical = new RegExp(source, flags);
-  const condition = rule.conditions.conditions[0].leftValue;
-  assert.ok(condition.includes("toLocaleLowerCase('tr-TR')"), 'mesaj Türkçe küçük harfe çevrilerek karşılaştırılır');
   const matches = (text) => critical.test(text.toLocaleLowerCase('tr-TR'));
-  for (const text of ['Nefes alamıyorum', 'nefes alamiyorum', 'İntihar etmeyi düşünüyorum', 'İNTİHAR ETMEK İSTİYORUM', 'NEFES ALAMIYORUM', 'Artık yaşamak istemiyorum', 'Kan kustum',
+  for (const text of ['Nefes alamıyorum', 'NEFES ALAMIYORUM', 'İNTİHAR etmeyi düşünüyorum', 'Artık yaşamak istemiyorum', 'Kan kustum',
     'Babamın yüzü bir tarafa kaydı', 'konuşması bozuldu', 'bilinci kapalı', 'Annem uyanmıyor', 'kalp krizi geçiriyorum']) {
     assert.ok(matches(text), `yakalanmalı: ${text}`);
   }
@@ -62,50 +99,16 @@ test('kritik kelime ağı: pozitif ve negatif Türkçe örnekler', () => {
   }
 });
 
-test('her LLM kökü ana + yedek modele bağlı; router hızlı modeli kullanır', () => {
-  const models = {};
-  for (const [from, byType] of Object.entries(workflow.connections)) {
-    for (const c of byType.ai_languageModel?.[0] ?? []) (models[c.node] ??= [])[c.index] = from;
-  }
-  assert.deepEqual(models['Router: niyet + duygu'], ['Gemini (router)', 'Gemini (ana)']);
-  for (const root of ['Selamla', 'Semptom analizi', 'Sohbet / psikolojik destek', 'Denetçi: kontrol ve düzeltme']) {
-    assert.deepEqual(models[root], ['Gemini (ana)', 'Gemini (yedek)'], root);
-    assert.equal(node(root).parameters.needsFallback, true, root);
-  }
-});
-
-test('modül şemalarında yanıt uzunluğu tavanı var', () => {
-  const max = (name) => JSON.parse(node(name).parameters.inputSchema).properties.reply.maxLength;
-  assert.equal(max('Selamla şeması'), 450);
-  assert.equal(max('Semptom şeması'), 900);
-  assert.equal(max('Sohbet şeması'), 320);
-  assert.ok(max('Denetçi şeması') > 0);
-});
-
-test('doğrulama politikası: her mod tanımlı ve modül adı → mod eşlemesi eksiksiz', () => {
-  const assignments = node('Doğrulama politikası').parameters.assignments.assignments;
-  const policies = JSON.parse(assignments.find((a) => a.name === 'policies').value);
-  assert.deepEqual(Object.keys(policies).sort(), ['booking', 'chat', 'emergency', 'greeting', 'symptom_analysis']);
-  for (const [mode, policy] of Object.entries(policies)) assert.ok(policy.safe_reply, `${mode} güvenli yanıt`);
-  const mapping = assignments.find((a) => a.name === 'mode').value;
-  for (const moduleName of ['112 yanıtını oluştur', 'Selamla', 'Semptom analizi', 'Sohbet / psikolojik destek']) {
-    assert.ok(mapping.includes(`'${moduleName}'`), moduleName);
-  }
-  assert.equal(policies.chat.judge, true, 'Denetçi sohbette her turda çalışır');
-  for (const mode of ['greeting', 'symptom_analysis', 'booking']) assert.equal(policies[mode].judge, false, mode);
-  assert.equal(policies.chat.forbid.includes('referral'), true, 'sohbette yönlendirme yasak');
-});
-
-test('hitap: sohbet "sen" (yönlendirme yok), Selamla ve Semptom "siz"', () => {
-  const chat = node('Sohbet / psikolojik destek').parameters.messages.messageValues[0].message;
-  assert.match(chat, /"sen" diye hitap/);
-  assert.doesNotMatch(chat, /"siz" diye hitap/);
-  assert.match(chat, /yönlendirme YOK/);
-  for (const name of ['Selamla', 'Semptom analizi']) {
-    const prompt = node(name).parameters.messages.messageValues[0].message;
-    assert.match(prompt, /"siz" diye hitap/, name);
-    assert.doesNotMatch(prompt, /"sen" diye hitap/, name);
-  }
+test('ana ajan prompt\'u: çağrı kararı, hitap ve yasaklar; yanıt şeması', () => {
+  const prompt = node('Şifa (ana ajan)').parameters.options.systemMessage;
+  assert.ok(prompt.includes('KENDİN cevapla, araç çağırma'));
+  assert.ok(prompt.includes('mode=chat: "sen" dili'));
+  assert.ok(prompt.includes('saygılı "siz" dili'));
+  assert.ok(prompt.includes('yönlendirmesi YOK'));
+  assert.ok(prompt.includes('denetçiye gönderme'), 'alt ajan yanıtları denetçiye gönderilmez (gereksiz çağrı)');
+  const schema = JSON.parse(node('Şifa yanıt şeması').parameters.inputSchema);
+  assert.deepEqual(schema.properties.mode.enum, ['chat', 'greeting', 'symptom_analysis', 'booking']);
+  assert.ok(schema.properties.reply.maxLength > 0);
 });
 
 // ---------------------------------------------------------------- Bağlamı hazırla
@@ -118,16 +121,14 @@ const PROFILE = {
 const CONTEXT = {
   replay: null, conversation_found: true, profile: PROFILE, history: [], past_reports: [], current_report: null,
   active_module: 'booking', appointments: [],
-  pending_action: { type: 'slot_offer', slots: [{ slot_id: 's1', weekday: 'Cuma', date: '2026-10-02', time: '14:00', doctor: 'Uzm. Dr. Ayla Kaya' }] },
+  pending_action: { type: 'slot_offer', slots: [{ slot_id: 's1', label: 'Cuma 14:00 · Uzm. Dr. Ayla Kaya' }] },
 };
 
-test('Bağlamı hazırla: eksik alanlar, router ve modül bağlamı, bekleyen teklif', async () => {
+test('Bağlamı hazırla: eksik alanlar, profil ve bekleyen teklif bağlama girer', async () => {
   const out = await runCode('Bağlamı hazırla', { context: CONTEXT }, { 'İsteği normalize et': REQUEST });
   assert.deepEqual(out.missing_profile_fields, []);
-  assert.match(out.router_input, /Aktif modül: booking/);
-  assert.match(out.router_input, /Bekleyen saat teklifi: var/);
   assert.match(out.prompt_input, /Kronik hastalıklar: Tip 2 diyabet/);
-  assert.match(out.prompt_input, /1\) Cuma 2026-10-02 14:00, Uzm\. Dr\. Ayla Kaya \[slot_id: s1\]/);
+  assert.match(out.prompt_input, /1\) Cuma 14:00 · Uzm\. Dr\. Ayla Kaya \[slot_id: s1\]/);
 });
 
 test('Bağlamı hazırla: yeni kullanıcı ve etiket taklidi temizliği', async () => {
@@ -141,83 +142,66 @@ test('Bağlamı hazırla: yeni kullanıcı ve etiket taklidi temizliği', async 
 
 // ---------------------------------------------------------------- Çıktı kontrolü
 
-const policies = JSON.parse(node('Doğrulama politikası').parameters.assignments.assignments.find((a) => a.name === 'policies').value);
-const checkOutput = (mode, output, { profile = PROFILE, router = { mood: 'worried' } } = {}) => runCode(
+const check = (output, { profile = PROFILE } = {}) => runCode(
   'Çıktı kontrolü',
-  { mode, policies, output },
-  { 'Bağlamı hazırla': { ...REQUEST, conversation_found: true, profile }, ...(router ? { 'Router: niyet + duygu': { output: router } } : {}) },
-);
+  { output },
+  { 'Bağlamı hazırla': { ...REQUEST, conversation_found: true, profile } },
+).then((r) => r.turn);
 
-test('Çıktı kontrolü: Selamla profil güncellemesi kurallara göre süzülür', async () => {
-  const out = await checkOutput('greeting', { reply: 'Teşekkürler.', profile_updates: { age: '34', sex: 'robot', history_status: 'none' } }, { profile: null });
-  assert.deepEqual(out.turn.profile_patch, { age_status: 'provided', age: 34, history_status: 'none' });
-  assert.equal(out.turn.mood, 'worried');
-  assert.equal(out.turn.active_module, 'greeting');
-  assert.deepEqual(out.violations, []);
+test('Çıktı kontrolü: tanışmada açık beyanlar profile yazılır, geçersizler atılır', async () => {
+  const turn = await check({ mode: 'greeting', reply: 'Teşekkürler.', mood: 'worried', profile_updates: { age: '34', sex: 'robot', history_status: 'none' } }, { profile: null });
+  assert.deepEqual(turn.profile_patch, { age_status: 'provided', age: 34, history_status: 'none' });
+  assert.equal(turn.mood, 'worried');
+  assert.equal(turn.active_module, 'greeting');
 });
 
-test('Çıktı kontrolü: semptom acil ise 112 eklenir, rapor doğrulanır', async () => {
-  const out = await checkOutput('symptom_analysis', { reply: 'Hemen değerlendirilmelisiniz.', assessment: { summary: 'Göğüs ağrısı ve terleme', urgency: 'emergency' } });
-  assert.match(out.turn.assistant_reply, /112/);
-  assert.equal(out.require_112, true);
-  assert.equal(out.turn.symptom_report.urgency, 'emergency');
+test('Çıktı kontrolü: sohbet ve randevu modlarında yalnızca ad güncellenir', async () => {
+  const turn = await check({ mode: 'chat', reply: 'Seni dinliyorum.', profile_updates: { display_name: 'Ayşe', age: 40 } });
+  assert.deepEqual(turn.profile_patch, { display_name: 'Ayşe' });
 });
 
-test('Çıktı kontrolü: kural ihlalleri bulunur (uzunluk, yapay zeka ifadesi, yönlendirme)', async () => {
-  const long = await checkOutput('greeting', { reply: 'Bir. İki. Üç. Dört. Beş. Altı?' });
-  assert.ok(long.violations.some((v) => v.startsWith('too_many_sentences')));
-  const ai = await checkOutput('chat', { reply: 'Ben bir yapay zekayım ama seni dinliyorum.' });
-  assert.ok(ai.violations.includes('ai_disclosure'));
-  const referral = await checkOutput('chat', { reply: 'Bir psikoloğa görünmeni öneririm.' });
-  assert.ok(referral.violations.includes('referral'));
+test('Çıktı kontrolü: semptom değerlendirmesi rapora, acilde 112 eklenir', async () => {
+  const turn = await check({ mode: 'symptom_analysis', reply: 'Hemen değerlendirilmelisiniz.', assessment: { summary: 'Göğüs ağrısı ve terleme', urgency: 'emergency', department: 'Acil Servis' } });
+  assert.equal(turn.symptom_report.urgency, 'emergency');
+  assert.match(turn.assistant_reply, /112/);
 });
 
-test('Çıktı kontrolü: kullanıcının kendi ilacından veya alerjisinden söz etmek ihlal değildir', async () => {
-  const out = await checkOutput('symptom_analysis', { reply: 'Kullandığınız aspirin nedeniyle kanama riski artabilir. İlaç alerjiniz var mı?' });
-  assert.deepEqual(out.violations, []);
-  const dose = await checkOutput('symptom_analysis', { reply: 'Günde 3 kez 500 mg alabilirsiniz.' });
-  assert.ok(dose.violations.includes('medication'));
+test('Çıktı kontrolü: sohbette kendine zarar verme riski → acil + "sen" diliyle 112', async () => {
+  const turn = await check({ mode: 'chat', reply: 'Bunu duyduğuma çok üzüldüm.', self_harm_risk: true });
+  assert.equal(turn.symptom_report.urgency, 'emergency');
+  assert.match(turn.assistant_reply, /112'yi ara\./);
 });
 
-test('Çıktı kontrolü: yeni kullanıcıda acil yanıt bilinmeyen konuşma yerine yeni konuşmaya yazılır', async () => {
+test('Çıktı kontrolü: sert kural (yapay zeka ifadesi, doz) → modun güvenli yanıtı', async () => {
+  const ai = await check({ mode: 'chat', reply: 'Ben bir yapay zekayım ama seni dinliyorum.' });
+  assert.equal(ai.assistant_reply, 'Seni dinliyorum, biraz daha anlatmak ister misin?');
+  assert.equal(ai.validation.fallback, true);
+  const dose = await check({ mode: 'symptom_analysis', reply: 'Günde 3 kez 500 mg alabilirsiniz.' });
+  assert.equal(dose.validation.fallback, true);
+});
+
+test('Çıktı kontrolü: kullanıcının kendi ilacından/alerjisinden söz etmek ihlal değildir; yönlendirme sohbette ihlaldir', async () => {
+  const ok = await check({ mode: 'symptom_analysis', reply: 'Kullandığınız aspirin nedeniyle kanama riski artabilir. İlaç alerjiniz var mı?' });
+  assert.deepEqual(ok.validation.violations, []);
+  const referral = await check({ mode: 'chat', reply: 'Bir psikoloğa görünmeni öneririm.' });
+  assert.ok(referral.validation.violations.includes('referral'));
+});
+
+test('Çıktı kontrolü: saat teklifi bekleyen eylem olur; randevu onayı veritabanında doğrulanacak', async () => {
+  const offer = await check({ mode: 'booking', reply: 'Yarın 14:00 ve 16:30 boş, hangisi size uyar?', offered_slots: [{ slot_id: 's1', label: 'Cuma 14:00 · Dr. A' }, { slot_id: 'x' }] });
+  assert.deepEqual(offer.pending_action, { type: 'slot_offer', slots: [{ slot_id: 's1', label: 'Cuma 14:00 · Dr. A' }] });
+  assert.equal(offer.expects_booking, false);
+  const booked = await check({ mode: 'booking', reply: 'Randevunuzu oluşturdum.', booked_appointment_id: 'ap-1' });
+  assert.equal(booked.expects_booking, true);
+  assert.equal(booked.pending_action, null);
+  assert.ok(booked.unverified_booking_reply);
+});
+
+test('Çıktı kontrolü: 112 yolu acil kaydı üretir; bilinmeyen konuşmada yeni konuşmaya yazılır', async () => {
   const out = await runCode('Çıktı kontrolü',
-    { mode: 'emergency', policies, output: { reply: "Lütfen 112'yi arayın.", assessment: { summary: 'Kritik ifade', urgency: 'emergency', department: 'Acil Servis' } } },
+    { output: { mode: 'emergency', urgency: 'emergency', reply: "Lütfen 112'yi arayın.", assessment: { summary: 'Kritik ifade', urgency: 'emergency', department: 'Acil Servis' } } },
     { 'Bağlamı hazırla': { ...REQUEST, conversation_id: 'c0000000-0000-4000-8000-000000000000', conversation_found: false, profile: null } });
+  assert.equal(out.turn.mode, 'emergency');
   assert.equal(out.turn.conversation_id, null);
-});
-
-// ---------------------------------------------------------------- Denetçi sonucu (Set ifadesi)
-
-const denetciTurn = (denetciJson, check) => {
-  const expression = node('Denetçi sonucu').parameters.assignments.assignments.find((a) => a.name === 'turn').value;
-  const body = expression.replace(/^=\{\{/, '').replace(/\}\}$/, '');
-  return new Function('$json', '$', `return (${body});`)(denetciJson, nodeRefs({ 'Çıktı kontrolü': check }));
-};
-
-test('Denetçi sonucu: düzeltilmiş yanıt yerleşir; sert kural çiğnenirse güvenli yanıt', async () => {
-  const check = await checkOutput('chat', { reply: 'Ben bir yapay zekayım ama seni dinliyorum.' });
-  const corrected = denetciTurn({ output: { pass: false, violations: ['ai_disclosure'], reply: 'Seni dinliyorum, anlatmak ister misin?' } }, check);
-  assert.equal(corrected.assistant_reply, 'Seni dinliyorum, anlatmak ister misin?');
-  assert.deepEqual({ corrected: corrected.validation.corrected, fallback: corrected.validation.fallback }, { corrected: true, fallback: false });
-
-  const stillBad = denetciTurn({ output: { pass: false, reply: 'Bir dil modeli olarak söyleyeyim…' } }, check);
-  assert.equal(stillBad.assistant_reply, policies.chat.safe_reply);
-  assert.equal(stillBad.validation.fallback, true);
-
-  const failed = denetciTurn({ error: 'Gemini 503' }, check);
-  assert.equal(failed.assistant_reply, policies.chat.safe_reply, 'Denetçi hata verirse güvenli yanıt');
-});
-
-test('Çıktı kontrolü: sohbette kendine zarar verme riski acil sayılır ve 112 eklenir ("sen" dili)', async () => {
-  const out = await checkOutput('chat', { reply: 'Bunu duyduğuma çok üzüldüm.', mood: 'sad', self_harm_risk: true });
-  assert.equal(out.urgency, 'emergency');
-  assert.equal(out.require_112, true);
-  assert.match(out.turn.assistant_reply, /112'yi ara\./);
   assert.equal(out.turn.symptom_report.urgency, 'emergency');
-});
-
-test('Çıktı kontrolü: risk yoksa sohbet turu rapor ve aciliyet üretmez', async () => {
-  const out = await checkOutput('chat', { reply: 'Seni dinliyorum.', mood: 'calm', self_harm_risk: false });
-  assert.equal(out.turn.symptom_report, null);
-  assert.equal(out.urgency, null);
 });

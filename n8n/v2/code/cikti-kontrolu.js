@@ -1,29 +1,37 @@
 // n8n node: Çıktı kontrolü (n8n:pull ile üretilmiştir; kaynak n8n arayüzüdür)
-// ÇIKTI KONTROLÜ — saf dönüşüm, karar vermez; bulgu üretir.
-// 1) Modül çıktısını tek biçime indirger (yanıt, profil güncellemesi, semptom özeti).
-// 2) Profil güncellemelerine iş kurallarını uygular: yalnızca geçerli ve açıkça söylenmiş değerler.
-// 3) "Doğrulama politikası"ndaki mod kurallarına göre yanıtı denetler → violations[].
-// Kararı bir sonraki "Doğrulama kararı" Switch'i verir (ihlal varsa veya mod denetimliyse Denetçi).
+// ÇIKTI KONTROLÜ — ajanın yanıtını kaydetmeden önceki tek kontrol (model çağırmaz).
+// 1) Ajan çıktısını kayıt biçimine çevirir (profil güncellemesi, semptom özeti, randevu teklifi).
+// 2) Mod kurallarını uygular: sert kural çiğnenirse (doz, "yapay zekayım", acilde 112 yok)
+//    modun güvenli yanıtı kullanılır; diğer ihlaller kayda işlenir.
+
+// ---- Kurallar (mod başına) ----
+const POLICIES = {
+  chat:             { max_sentences: 3, max_questions: 1, forbid: ['ai_disclosure', 'medication', 'diagnosis', 'referral'], safe_reply: 'Seni dinliyorum, biraz daha anlatmak ister misin?' },
+  greeting:         { max_sentences: 4, max_questions: 2, forbid: ['ai_disclosure', 'medication', 'diagnosis'], safe_reply: 'Size daha doğru yardımcı olabilmem için yaşınızı ve bilinen bir rahatsızlığınız olup olmadığını öğrenebilir miyim?' },
+  symptom_analysis: { max_sentences: 7, max_questions: 2, forbid: ['ai_disclosure', 'medication', 'diagnosis'], safe_reply: 'Şikayetinizi biraz daha anlatır mısınız? Ne zamandır sürüyor ve ne kadar şiddetli?' },
+  booking:          { max_sentences: 5, max_questions: 1, forbid: ['ai_disclosure', 'medication'], safe_reply: 'Randevu için hangi bölüm ve gün size uygun?' },
+  emergency:        { forbid: [], safe_reply: "Lütfen hemen 112'yi arayın veya en yakın acil servise gidin." },
+};
 
 const ctx = $('Bağlamı hazırla').first().json;
-const router = $('Router: niyet + duygu').isExecuted ? $('Router: niyet + duygu').first().json.output : null;
-const mode = $json.mode;
-const policy = $json.policies[mode];
-
-// ---- 1) Model çıktısını oku (parser nesnesi, iç içe output veya ```json bloğu) ----
-function readOutput(raw) {
-  let value = raw?.output;
-  if (value && typeof value === 'object' && value.output && !('reply' in value)) value = value.output;
-  if (typeof value === 'string') {
-    const fenced = value.match(/```(?:json)?\s*([\s\S]*?)```/i);
-    try { value = JSON.parse(fenced ? fenced[1] : value); } catch { value = { reply: value }; }
-  }
-  return value && typeof value === 'object' ? value : {};
-}
-const out = readOutput($json);
+const out = $json.output && typeof $json.output === 'object' ? $json.output : {};
+const mode = POLICIES[out.mode] ? out.mode : 'chat';
+const policy = POLICIES[mode];
 let reply = typeof out.reply === 'string' ? out.reply.trim() : '';
 
-// ---- 2) Profil güncellemeleri (v1 kuralları) ----
+// ---- Kurallar: Türkçe harflerde JS'in \b sınırı çalışmaz; Unicode-farkında sınır ----
+const S = '(?<![\\p{L}])';
+const E = '(?![\\p{L}])';
+const rule = (source) => new RegExp(source, 'iu');
+const DOSE = rule(`${S}\\d+\\s*(mg|ml|mcg)${E}|günde\\s+\\d+\\s*(kez|defa|tablet|doz)`);
+const RULES = {
+  ai_disclosure: rule(`yapay zek|dil model|${S}bir bot(um)?${E}|gerçek bir insan değil|üzgünüm,? ben bir`),
+  medication: rule(`${DOSE.source}|${S}(ağrı kesici|antibiyotik|parasetamol|ibuprofen)\\s+(alın|al|kullanın|kullan)${E}|${S}ila[çc](ı|ını|ınızı)?\\s+(alın|al|kullanın|kullan)${E}`),
+  diagnosis: rule(`${S}(sizde|sende)\\s+\\S+\\s+var${E}|teşhisiniz|kesinlikle\\s+\\S+(dır|dir|tır|tir|dur|dür)${E}`),
+  referral: rule(`psikolo[gğ]|psikiyatr|terapist|${S}terapi${E}|uzmana?\\s+(görün|başvur|danış)`),
+};
+
+// ---- Profil güncellemeleri: yalnızca geçerli ve açıkça söylenmiş değerler ----
 const fold = (s) => s.trim().toLocaleLowerCase('tr-TR').replace(/ı/g, 'i');
 function cleanList(value) {
   if (!Array.isArray(value)) return [];
@@ -33,28 +41,22 @@ function cleanList(value) {
     .filter((item) => item && item.length <= 80 && !seen.has(fold(item)) && seen.add(fold(item)))
     .slice(0, 10);
 }
-
-function buildProfilePatch(updates, current = {}) {
+function buildProfilePatch(updates, current) {
   const patch = {};
-  if (!updates || typeof updates !== 'object') return patch;
   current = current ?? {};
-
+  if (!updates || typeof updates !== 'object') return patch;
   if (typeof updates.display_name === 'string') {
     const name = updates.display_name.replace(/\s+/g, ' ').trim();
     if (name && name.length <= 60 && !/[<>{}\d]/.test(name) && name !== current.display_name) patch.display_name = name;
   }
-  // Selamla dışındaki modlar yalnızca ad güncelleyebilir (randevuda hasta adı gibi).
-  if (mode !== 'greeting' && mode !== 'symptom_analysis') return patch;
-
+  if (mode === 'chat' || mode === 'booking') return patch; // bu modlarda yalnızca ad
   const age = typeof updates.age === 'string' && /^\d{1,3}$/.test(updates.age.trim()) ? Number(updates.age) : updates.age;
   if (Number.isInteger(age) && age >= 1 && age <= 120) {
     if (current.age_status !== 'provided' || current.age !== age) Object.assign(patch, { age_status: 'provided', age });
   } else if (updates.age_declined === true && !['provided', 'declined'].includes(current.age_status)) {
     patch.age_status = 'declined';
   }
-
   if (['female', 'male', 'other', 'declined'].includes(updates.sex) && updates.sex !== current.sex) patch.sex = updates.sex;
-
   const columns = { conditions: 'chronic_conditions', medications: 'medications', allergies: 'allergies' };
   const resulting = {};
   for (const [key, column] of Object.entries(columns)) {
@@ -65,13 +67,11 @@ function buildProfilePatch(updates, current = {}) {
     const kept = existing.filter((item) => !removeKeys.has(fold(item)));
     const add = cleanList(updates[`${key}_add`])
       .filter((item) => !existingKeys.has(fold(item)) && !removeKeys.has(fold(item)))
-      .slice(0, Math.max(0, 15 - kept.length)); // DB sınırı: liste en fazla 15 öğe
+      .slice(0, Math.max(0, 15 - kept.length)); // DB sınırı: en fazla 15 öğe
     if (add.length) patch[`${key}_add`] = add;
     if (remove.length) patch[`${key}_remove`] = remove;
     resulting[key] = [...kept, ...add];
   }
-
-  // Hastalık geçmişi durumu listeyle tutarlı olmalı.
   const requested = ['provided', 'none', 'declined'].includes(updates.history_status) ? updates.history_status : null;
   let status = current.history_status ?? 'unknown';
   if (requested === 'none') {
@@ -82,70 +82,47 @@ function buildProfilePatch(updates, current = {}) {
   else if (requested === 'declined') status = 'declined';
   else if (status === 'provided') status = 'none';
   if (status !== (current.history_status ?? 'unknown')) patch.history_status = status;
-
   return patch;
 }
 
-function symptomReport(assessment) {
-  if (!assessment || typeof assessment !== 'object') return null;
-  const summary = String(assessment.summary ?? '').replace(/\s+/g, ' ').trim();
-  if (summary.length < 3 || !['self_care', 'routine', 'soon', 'emergency'].includes(assessment.urgency)) return null;
-  return { summary: summary.slice(0, 500), urgency: assessment.urgency, department: String(assessment.department ?? '').trim().slice(0, 80) || null };
+// ---- Semptom özeti ve aciliyet ----
+const URGENCIES = ['self_care', 'routine', 'soon', 'emergency'];
+function report() {
+  const a = out.assessment;
+  if (a && typeof a === 'object' && String(a.summary ?? '').trim().length >= 3 && URGENCIES.includes(a.urgency)) {
+    return { summary: String(a.summary).replace(/\s+/g, ' ').trim().slice(0, 500), urgency: a.urgency, department: String(a.department ?? '').trim().slice(0, 80) || null };
+  }
+  if (out.self_harm_risk === true || out.urgency === 'emergency') {
+    return { summary: `Acil durum işareti: "${ctx.message.slice(0, 300)}"`, urgency: 'emergency', department: 'Acil Servis' };
+  }
+  return null;
 }
-
-// Sohbette kendine zarar verme riski: acil olarak kaydedilir ve yanıtta mutlaka 112 geçer ("sen" dili).
-const selfHarm = mode === 'chat' && out.self_harm_risk === true;
-const report = ['symptom_analysis', 'emergency'].includes(mode)
-  ? symptomReport(out.assessment)
-  : selfHarm ? { summary: `Sohbette kendine zarar verme riski: "${ctx.message.slice(0, 300)}"`, urgency: 'emergency', department: 'Acil Servis' } : null;
-const urgency = report?.urgency ?? null;
+const symptomReport = report();
+const urgency = symptomReport?.urgency ?? null;
 if (urgency === 'emergency' && !reply.includes('112')) {
-  reply = selfHarm
-    ? `${reply}\n\n**Yalnız değilsin. Kendini güvende hissetmiyorsan lütfen hemen 112'yi ara.**`.trim()
-    : `${reply}\n\n**Belirttikleriniz acil olabilir: lütfen hemen 112'yi arayın veya en yakın acil servise gidin.**`.trim();
+  reply = `${reply}\n\n${mode === 'chat'
+    ? "**Yalnız değilsin. Kendini güvende hissetmiyorsan lütfen hemen 112'yi ara.**"
+    : "**Belirttikleriniz acil olabilir: lütfen hemen 112'yi arayın veya en yakın acil servise gidin.**"}`.trim();
 }
 
-// ---- 3) Mod kurallarına göre denetim ----
-// Doz ifadesi her modda kesin yasak (sert kural). İlaç önerisi kalıpları Denetçi'ye gönderir;
-// kullanıcının kendi ilacının adının geçmesi ("kullandığınız aspirin nedeniyle…") ihlal değildir.
-// JS'in \b sınırı Türkçe harfleri (ç, ğ, ı, ö, ş, ü) tanımaz; harf sınırı Unicode-farkında yazılır.
-const S = '(?<![\\p{L}])';
-const E = '(?![\\p{L}])';
-const rule = (source) => new RegExp(source, 'iu');
-const DOSE = rule(`${S}\\d+\\s*(mg|ml|mcg)${E}|günde\\s+\\d+\\s*(kez|defa|tablet|doz)`);
-const RULES = {
-  ai_disclosure: rule(`yapay zek|dil model|${S}bir bot(um)?${E}|gerçek bir insan değil|üzgünüm,? ben bir`),
-  medication: rule(`${DOSE.source}|${S}(ağrı kesici|antibiyotik|parasetamol|ibuprofen)\\s+(alın|al|kullanın|kullan)${E}|${S}ila[çc](ı|ını|ınızı)?\\s+(alın|al|kullanın|kullan)${E}`),
-  diagnosis: rule(`${S}(sizde|sende)\\s+\\S+\\s+var${E}|teşhisiniz|kesinlikle\\s+\\S+(dır|dir|tır|tir|dur|dür)${E}`),
-  referral: rule(`psikolo[gğ]|psikiyatr|terapist|${S}terapi${E}|uzmana?\\s+(görün|başvur|danış)`),
-  medical_advice: rule(`${S}ila[çc]|tedavi|teşhis|doktora git`),
-};
+// ---- Kurallara göre kontrol ----
 const sentences = reply.replace(/^\s*[-•]\s+.*$/gm, '').split(/[.!?…]+(?:\s|$)/).filter((s) => s.trim().length > 1).length;
 const questions = (reply.match(/\?/g) ?? []).length;
-const bullets = (reply.match(/^\s*[-•]\s+/gm) ?? []).length;
-
 const violations = [];
-if (!reply) violations.push('empty_reply');
-for (const rule of policy.forbid ?? []) if (RULES[rule]?.test(reply)) violations.push(rule);
+for (const name of policy.forbid ?? []) if (RULES[name].test(reply)) violations.push(name);
 if (policy.max_sentences && sentences > policy.max_sentences) violations.push(`too_many_sentences:${sentences}>${policy.max_sentences}`);
 if (policy.max_questions !== undefined && questions > policy.max_questions) violations.push(`too_many_questions:${questions}>${policy.max_questions}`);
-if (policy.max_bullets !== undefined && bullets > policy.max_bullets) violations.push(`too_many_bullets:${bullets}>${policy.max_bullets}`);
-if (policy.max_chars && reply.length > policy.max_chars) violations.push(`too_long:${reply.length}>${policy.max_chars}`);
+const hardBreak = !reply || RULES.ai_disclosure.test(reply) || DOSE.test(reply) || (urgency === 'emergency' && !reply.includes('112'));
+if (hardBreak) reply = urgency === 'emergency' ? POLICIES.emergency.safe_reply : policy.safe_reply;
 
-// Denetçi'den dönen düzeltilmiş yanıtın son kontrolü için sert kurallar ve modun güvenli yanıtı.
-const hardRules = [RULES.ai_disclosure.source, DOSE.source];
+// ---- Randevu teklifi (bir sonraki tur "14:00" cevabı için) ----
+const slots = Array.isArray(out.offered_slots)
+  ? out.offered_slots.filter((s) => s && typeof s.slot_id === 'string' && typeof s.label === 'string').slice(0, 4)
+  : [];
+const bookedId = typeof out.booked_appointment_id === 'string' && out.booked_appointment_id.trim() ? out.booked_appointment_id.trim() : null;
 
 return {
   json: {
-    mode,
-    policy,
-    reply,
-    urgency,
-    violations,
-    user_message: ctx.message,
-    hard_rule_pattern: hardRules.join('|'),
-    require_112: urgency === 'emergency',
-    safe_reply: policy.safe_reply,
     turn: {
       user_id: ctx.user_id,
       request_id: ctx.request_id,
@@ -155,11 +132,13 @@ return {
       assistant_reply: reply,
       mode,
       profile_patch: buildProfilePatch(out.profile_updates, ctx.profile),
-      symptom_report: report,
-      mood: router?.mood ?? null,
+      symptom_report: symptomReport,
+      mood: ['calm', 'worried', 'sad', 'lonely', 'anxious', 'angry', 'neutral'].includes(out.mood) ? out.mood : null,
       active_module: mode,
-      pending_action: null,
-      validation: { judged: false, corrected: false, fallback: false, violations },
+      pending_action: slots.length ? { type: 'slot_offer', slots } : null,
+      expects_booking: bookedId !== null,
+      unverified_booking_reply: 'Randevu kaydı oluşmadı, tekrar dener misiniz?',
+      validation: { checked: true, fallback: hardBreak, violations },
     },
   },
 };
