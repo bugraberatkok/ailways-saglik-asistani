@@ -68,7 +68,7 @@ test('her LLM kökü ana + yedek modele bağlı; router hızlı modeli kullanır
     for (const c of byType.ai_languageModel?.[0] ?? []) (models[c.node] ??= [])[c.index] = from;
   }
   assert.deepEqual(models['Router: niyet + duygu'], ['Gemini (router)', 'Gemini (ana)']);
-  for (const root of ['Selamla', 'Semptom analizi', 'Denetçi: kontrol ve düzeltme']) {
+  for (const root of ['Selamla', 'Semptom analizi', 'Sohbet / psikolojik destek', 'Denetçi: kontrol ve düzeltme']) {
     assert.deepEqual(models[root], ['Gemini (ana)', 'Gemini (yedek)'], root);
     assert.equal(node(root).parameters.needsFallback, true, root);
   }
@@ -78,6 +78,7 @@ test('modül şemalarında yanıt uzunluğu tavanı var', () => {
   const max = (name) => JSON.parse(node(name).parameters.inputSchema).properties.reply.maxLength;
   assert.equal(max('Selamla şeması'), 450);
   assert.equal(max('Semptom şeması'), 900);
+  assert.equal(max('Sohbet şeması'), 320);
   assert.ok(max('Denetçi şeması') > 0);
 });
 
@@ -87,11 +88,19 @@ test('doğrulama politikası: her mod tanımlı ve modül adı → mod eşlemesi
   assert.deepEqual(Object.keys(policies).sort(), ['booking', 'chat', 'emergency', 'greeting', 'symptom_analysis']);
   for (const [mode, policy] of Object.entries(policies)) assert.ok(policy.safe_reply, `${mode} güvenli yanıt`);
   const mapping = assignments.find((a) => a.name === 'mode').value;
-  for (const moduleName of ['112 yanıtını oluştur', 'Selamla', 'Semptom analizi']) assert.ok(mapping.includes(`'${moduleName}'`), moduleName);
+  for (const moduleName of ['112 yanıtını oluştur', 'Selamla', 'Semptom analizi', 'Sohbet / psikolojik destek']) {
+    assert.ok(mapping.includes(`'${moduleName}'`), moduleName);
+  }
+  assert.equal(policies.chat.judge, true, 'Denetçi sohbette her turda çalışır');
+  for (const mode of ['greeting', 'symptom_analysis', 'booking']) assert.equal(policies[mode].judge, false, mode);
   assert.equal(policies.chat.forbid.includes('referral'), true, 'sohbette yönlendirme yasak');
 });
 
-test('hitap: Selamla ve Semptom prompt\'ları "siz" kuralını içerir', () => {
+test('hitap: sohbet "sen" (yönlendirme yok), Selamla ve Semptom "siz"', () => {
+  const chat = node('Sohbet / psikolojik destek').parameters.messages.messageValues[0].message;
+  assert.match(chat, /"sen" diye hitap/);
+  assert.doesNotMatch(chat, /"siz" diye hitap/);
+  assert.match(chat, /yönlendirme YOK/);
   for (const name of ['Selamla', 'Semptom analizi']) {
     const prompt = node(name).parameters.messages.messageValues[0].message;
     assert.match(prompt, /"siz" diye hitap/, name);
@@ -197,4 +206,18 @@ test('Denetçi sonucu: düzeltilmiş yanıt yerleşir; sert kural çiğnenirse g
 
   const failed = denetciTurn({ error: 'Gemini 503' }, check);
   assert.equal(failed.assistant_reply, policies.chat.safe_reply, 'Denetçi hata verirse güvenli yanıt');
+});
+
+test('Çıktı kontrolü: sohbette kendine zarar verme riski acil sayılır ve 112 eklenir ("sen" dili)', async () => {
+  const out = await checkOutput('chat', { reply: 'Bunu duyduğuma çok üzüldüm.', mood: 'sad', self_harm_risk: true });
+  assert.equal(out.urgency, 'emergency');
+  assert.equal(out.require_112, true);
+  assert.match(out.turn.assistant_reply, /112'yi ara\./);
+  assert.equal(out.turn.symptom_report.urgency, 'emergency');
+});
+
+test('Çıktı kontrolü: risk yoksa sohbet turu rapor ve aciliyet üretmez', async () => {
+  const out = await checkOutput('chat', { reply: 'Seni dinliyorum.', mood: 'calm', self_harm_risk: false });
+  assert.equal(out.turn.symptom_report, null);
+  assert.equal(out.urgency, null);
 });

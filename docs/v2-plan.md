@@ -490,3 +490,18 @@ Workflow: n8n'de **"Sağlık Asistanı v2"** (`N8N_WORKFLOW_V2_ID`), uç noktala
 | Gecikme notu | `gemini-3-flash-preview` tek çağrıda 4,8–9,3 sn arasında değişti (hata/yedek yok); semptom turu toplam ~6 sn, Selamla 11 sn'ye kadar. Faz 5 öncesi ölçülecek. |
 
 Kullanıcıya bırakılan Faz 2 testleri (≈ 2–3 çağrı/tur): Selamla'da profil tamamlama turu (yaş/cinsiyet/geçmiş verip sonraki mesajın Semptom'a geçmesi), "Merhaba" (profil eksik → Sohbet), "Başım ağrıyor, moralim de bozuk" (both → Semptom), randevu cevabı "14:00" (aktif modül booking iken deterministik kural — Faz 4'te anlamlı), v1 e2e regresyonu.
+
+## 15. Faz 3 sonuçları (2026-10-01)
+
+| Kabul kriteri | Sonuç |
+|---|---|
+| Sohbet / psikolojik destek modülü | ✅ "Sen" dili, 1–3 cümle, en fazla 1 soru; tıbbi tavsiye ve profesyonel yönlendirme yok; şema `reply.maxLength=320`, `mood`, `self_harm_risk`. Geçici Set node'unun yerini aldı (41 mantık node'u, 2 Code). |
+| PDF senaryosu 2: "canım sıkkın" | ✅ Zeynep: "…içinden hiçbir şey gelmemesi… çok normal. Seni böyle hissettiren özel bir şey oldu mu, anlatmak ister misin?" (2 cümle, 1 soru, ruh hali `sad`). |
+| Denetçi sohbette her turda | ✅ `judge: true` (politika tablosu); 3 canlı turda `judged=true`, ihlal yok. Diğer modlar `judge: false` (yalnızca ihlalde). |
+| Bedensel belirti → tek cümle teklif | ✅ "…uyuyamıyorum" → "İstersen uykusuzluk durumunu da birlikte değerlendirebiliriz." (ısrar yok). |
+| Dolaylı kriz (kritik kelime ve router'dan geçen) | ✅ "Ortadan kaybolmak istiyorum" → sohbet modülü `self_harm_risk=true` → aciliyet `emergency`, yanıtta "Yalnız olmadığını… hemen 112'yi ara"; acil rapor kaydı. Güvenliğin 3. katmanı. |
+| Arayüz | ✅ Frontend v2 uç noktalarına bağlandı (geçiş dönemi), "Sohbet" (mor) ve "Randevu" (amber) rozetleri, örnek mesaj "Canım çok sıkkın bugün"; istemci zaman aşımı 125 sn (workflow 120 sn). |
+| `npm test` | ✅ 118/118 (sohbet şeması, hitap, politika, kendine zarar verme dahil). |
+| Gemini çağrısı | ≈ 9 |
+
+Kullanıcıya bırakılan Faz 3 testleri: sohbet → randevu → sohbet geçişinde hitap yumuşaklığı (Faz 4 sonrası), "Merhaba" (profil eksik → sohbet), sağlık dışı istek ("bana kod yaz"), kimlik sorusu ("sen yapay zeka mısın?") — yasaklı ifade kullanılmamalı.

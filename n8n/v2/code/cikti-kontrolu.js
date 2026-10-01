@@ -93,10 +93,16 @@ function symptomReport(assessment) {
   return { summary: summary.slice(0, 500), urgency: assessment.urgency, department: String(assessment.department ?? '').trim().slice(0, 80) || null };
 }
 
-const report = ['symptom_analysis', 'emergency'].includes(mode) ? symptomReport(out.assessment) : null;
+// Sohbette kendine zarar verme riski: acil olarak kaydedilir ve yanıtta mutlaka 112 geçer ("sen" dili).
+const selfHarm = mode === 'chat' && out.self_harm_risk === true;
+const report = ['symptom_analysis', 'emergency'].includes(mode)
+  ? symptomReport(out.assessment)
+  : selfHarm ? { summary: `Sohbette kendine zarar verme riski: "${ctx.message.slice(0, 300)}"`, urgency: 'emergency', department: 'Acil Servis' } : null;
 const urgency = report?.urgency ?? null;
 if (urgency === 'emergency' && !reply.includes('112')) {
-  reply = `${reply}\n\n**Belirttikleriniz acil olabilir: lütfen hemen 112'yi arayın veya en yakın acil servise gidin.**`.trim();
+  reply = selfHarm
+    ? `${reply}\n\n**Yalnız değilsin. Kendini güvende hissetmiyorsan lütfen hemen 112'yi ara.**`.trim()
+    : `${reply}\n\n**Belirttikleriniz acil olabilir: lütfen hemen 112'yi arayın veya en yakın acil servise gidin.**`.trim();
 }
 
 // ---- 3) Mod kurallarına göre denetim ----

@@ -31,6 +31,8 @@ const MODE_BADGES = {
   greeting: ['Selamla', 'bg-sky-100 text-sky-800'],
   symptom_analysis: ['Semptom analizi', 'bg-teal-100 text-teal-800'],
   emergency: ['ACİL', 'bg-red-600 text-white'],
+  chat: ['Sohbet', 'bg-violet-100 text-violet-800'],
+  booking: ['Randevu', 'bg-amber-100 text-amber-800'],
   fallback: ['Bilgi', 'bg-slate-100 text-slate-700'],
 };
 
@@ -208,7 +210,7 @@ export function showWelcome(onSuggestion, { isNewProfile }) {
   const suggestions = el('div', 'mt-4 flex flex-wrap justify-center gap-2');
   const examples = isNewProfile
     ? ['Merhaba', 'Merhaba, adım Deniz. 29 yaşındayım.', 'Paylaşmak istemiyorum']
-    : ['Merhaba', '3 gündür başım ağrıyor ve midem bulanıyor', 'Sabahları başım dönüyor'];
+    : ['Merhaba', '3 gündür başım ağrıyor ve midem bulanıyor', 'Canım çok sıkkın bugün'];
   for (const example of examples) {
     const button = el('button', 'rounded-full bg-white px-3 py-1.5 text-sm text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-teal-600', example);
     button.type = 'button';
