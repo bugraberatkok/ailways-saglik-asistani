@@ -2,6 +2,8 @@
 //   n8n/workflows/health-assistant.json  ← içe aktarılabilir, normalize edilmiş workflow
 //   n8n/prompts/<node>.md                ← LLM node'larının prompt'ları (yalnızca review/diff için)
 //   n8n/code/<node>.js                   ← Code node'larının kodu (yalnızca review/diff ve birim test için)
+// Geçiş döneminde (v1 canlıyken) `npm run n8n:pull -- --v2` v2 workflow'unu (N8N_WORKFLOW_V2_ID)
+// n8n/workflows/health-assistant-v2.json ve n8n/v2/{prompts,code} altına yazar.
 // Normalizasyon: değişken meta alanları atılır, credential ID'leri silinir (yalnızca ad kalır),
 // node'lar ada göre ve anahtarlar alfabetik sıralanır → aynı workflow iki kez çekilince diff sıfırdır.
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -9,9 +11,10 @@ import path from 'node:path';
 import { ROOT_DIR, requireEnv } from './lib/env.mjs';
 import { createN8nClient } from './lib/n8n-api.mjs';
 
-const WORKFLOW_FILE = path.join(ROOT_DIR, 'n8n', 'workflows', 'health-assistant.json');
-const PROMPTS_DIR = path.join(ROOT_DIR, 'n8n', 'prompts');
-const CODE_DIR = path.join(ROOT_DIR, 'n8n', 'code');
+const TARGETS = {
+  v1: { envId: 'N8N_WORKFLOW_ID', file: 'n8n/workflows/health-assistant.json', mirrorRoot: 'n8n' },
+  v2: { envId: 'N8N_WORKFLOW_V2_ID', file: 'n8n/workflows/health-assistant-v2.json', mirrorRoot: 'n8n/v2' },
+};
 
 const SETTINGS_KEYS = [
   'executionOrder', 'saveDataSuccessExecution', 'saveDataErrorExecution',
@@ -76,8 +79,8 @@ export function extractMirrors(workflow) {
   return files;
 }
 
-function writeMirrors(files) {
-  for (const dir of [PROMPTS_DIR, CODE_DIR]) {
+function writeMirrors(files, mirrorRoot) {
+  for (const dir of ['prompts', 'code'].map((d) => path.join(ROOT_DIR, mirrorRoot, d))) {
     mkdirSync(dir, { recursive: true });
     const prefix = path.basename(dir);
     for (const existing of readdirSync(dir)) {
@@ -85,19 +88,20 @@ function writeMirrors(files) {
     }
   }
   for (const [relative, content] of Object.entries(files)) {
-    writeFileSync(path.join(ROOT_DIR, 'n8n', relative), content);
+    writeFileSync(path.join(ROOT_DIR, mirrorRoot, relative), content);
   }
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.meta.filename);
 if (isMain) {
+  const target = TARGETS[process.argv.includes('--v2') ? 'v2' : 'v1'];
   const n8n = createN8nClient();
-  const workflowId = requireEnv('N8N_WORKFLOW_ID');
-  const workflow = normalizeWorkflow(await n8n.get(`/workflows/${workflowId}`));
-  mkdirSync(path.dirname(WORKFLOW_FILE), { recursive: true });
-  writeFileSync(WORKFLOW_FILE, `${JSON.stringify(workflow, null, 2)}\n`);
+  const workflow = normalizeWorkflow(await n8n.get(`/workflows/${requireEnv(target.envId)}`));
+  const file = path.join(ROOT_DIR, target.file);
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, `${JSON.stringify(workflow, null, 2)}\n`);
   const mirrors = extractMirrors(workflow);
-  writeMirrors(mirrors);
-  console.log(`✓ ${path.relative(ROOT_DIR, WORKFLOW_FILE)} (${workflow.nodes.length} node)`);
-  console.log(`✓ ${Object.keys(mirrors).length} prompt/kod aynası → n8n/prompts, n8n/code`);
+  writeMirrors(mirrors, target.mirrorRoot);
+  console.log(`✓ ${target.file} (${workflow.nodes.length} node)`);
+  console.log(`✓ ${Object.keys(mirrors).length} prompt/kod aynası → ${target.mirrorRoot}/prompts, ${target.mirrorRoot}/code`);
 }

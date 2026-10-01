@@ -472,3 +472,21 @@ Kullanıcıya bırakılan Faz 0 testleri: router modelinin planlanan 20 örneğe
 | `npm run test:db` | ✅ 28/28 (v1 14 + v2 14): en az yetki, `ensure_slots` günde bir kez, eş anlamlı bölüm eşleşmesi, tarih/saat filtresi, çifte rezervasyon (eşzamanlı → 1 başarılı + `slot_taken`), `request_id` idempotency, iptal → slot serbest, silme → slot serbest, `active_module`/`pending_action`/`mood`/`validation`, sahte onayın kaydedilmemesi. |
 | Bulunan operasyonel hata | `db:migrate` her çalıştığında `health_app` parolasını yeniden atıyordu; Supabase pooler eski SCRAM özetini önbellekte tuttuğu için migrate sonrasında bağlantılar kısa süre reddediliyordu (Faz 0 öncesi "geçici" DB test hatasının da nedeni; canlı n8n'i de etkileyebilirdi). Artık parola yalnızca ilk kurulumda veya `--rotate-app-password` ile atanıyor. |
 | Gemini çağrısı | 0 |
+
+## 14. Faz 2 sonuçları (2026-10-01)
+
+Workflow: n8n'de **"Sağlık Asistanı v2"** (`N8N_WORKFLOW_V2_ID`), uç noktalar `…/webhook/health-assistant-v2/*` (v1 canlı kaldığı için ayrı yol; Faz 5'te geçiş). Repo: `n8n/workflows/health-assistant-v2.json`, aynalar `n8n/v2/{prompts,code}`.
+
+| Kabul kriteri | Sonuç |
+|---|---|
+| Yapı | 40 mantık node'u + 8 not; **2 Code** (`Bağlamı hazırla`, `Çıktı kontrolü`, notlu). Sohbet ve Randevu çıkışları geçici yanıt (Faz 3–4). Canvas: Giriş → Router → Modüller → Doğrulama → Kayıt soldan sağa; Modeller ve ⚠️ Hatalar ayrı bantlarda. |
+| Ön kontrol (model yok) | ✅ Kritik kelime → 112 (0,2–0,4 sn, router çağrılmadan; "İNTİHAR", "NEFES ALAMIYORUM" dahil). Tekrar istek → kayıtlı cevap (`replayed=true`). Bilinmeyen konuşma → 404. Geçersiz istek → 400. Demo profil silme → 403. |
+| Router + Yola saptır | ✅ Canlı: eksik profil + karın ağrısı → Selamla; tam profil + titreme → Semptom; "canım sıkkın" → Sohbet (mood=sad); kardiyoloji randevusu → Randevu. Router ~0,8–1,0 sn. |
+| Uzunluk ve kişiselleştirme | ✅ Selamla 208 karakter (2 cümle, 1 soru); Semptom 627 karakter, diyabet + ilaçlar + **mevcut Dahiliye randevusunu** kullandı. |
+| Doğrulama / Denetçi | ✅ Zorlanmış ihlal (Selamla max 1 cümle) → Denetçi 3 cümleyi tek cümleye indirdi, `validation.corrected=true`; politika geri alındı. Hata/sert kural → güvenli yanıt yolu birim testli. |
+| `npm test` | ✅ 116/116: v2 export üzerinde yapı (Switch sırası, kritik kelime ağı pozitif/negatif, yedek model bağlantıları, şema tavanları, politika haritası, hitap) + Code node'ları ve `Denetçi sonucu` ifadesi stub'larla çalıştırılarak. |
+| Bulunan hatalar (düzeltildi) | JS `\b` ve `i` bayrağı Türkçe harfleri tanımıyor: (1) "ilaç **al**erjiniz" ilaç önerisi sayılıyordu → Unicode-farkında harf sınırı; (2) "psikolo**ğ**a" yakalanmıyordu; (3) büyük harfli "İNTİHAR" kritik kelime ağından kaçıp router'a düşüyordu → mesaj Switch'te `toLocaleLowerCase('tr-TR')` ile karşılaştırılıyor; (4) "yüzü **bir tarafa** kaydı" kalıbı. |
+| Gemini çağrısı | ≈ 10 |
+| Gecikme notu | `gemini-3-flash-preview` tek çağrıda 4,8–9,3 sn arasında değişti (hata/yedek yok); semptom turu toplam ~6 sn, Selamla 11 sn'ye kadar. Faz 5 öncesi ölçülecek. |
+
+Kullanıcıya bırakılan Faz 2 testleri (≈ 2–3 çağrı/tur): Selamla'da profil tamamlama turu (yaş/cinsiyet/geçmiş verip sonraki mesajın Semptom'a geçmesi), "Merhaba" (profil eksik → Sohbet), "Başım ağrıyor, moralim de bozuk" (both → Semptom), randevu cevabı "14:00" (aktif modül booking iken deterministik kural — Faz 4'te anlamlı), v1 e2e regresyonu.

@@ -76,17 +76,5 @@ test('extractMirrors: prompt ve kod aynaları Türkçe adlardan güvenli dosya a
   assert.deepEqual(Object.keys(files).sort(), ['code/baglami-hazirla.js', 'prompts/router.md']);
 });
 
-// ---- v2 sözleşmesi (docs/v2-plan.md) — ilgili fazda etkinleştirilecek ----
-
-test('v2: en fazla 2 Code node\'u ve her birinin açıklama notu var', { todo: 'Faz 2' }, () => {
-  const codeNodes = byType('n8n-nodes-base.code');
-  assert.ok(codeNodes.length <= 2);
-  for (const node of codeNodes) assert.ok(node.notes?.trim(), node.name);
-});
-
-test('v2: "Yola saptır" Switch çıkışları sırası: Acil, Selamla, Semptom, Randevu, Sohbet', { todo: 'Faz 2' });
-test('v2: kritik kelime regex\'i router\'dan önce; pozitif/negatif Türkçe örnekler', { todo: 'Faz 2' });
-test('v2: her LLM kökü ana + yedek modele bağlı', { todo: 'Faz 2' });
-test('v2: hitap — sohbet prompt\'u "sen", diğer LLM prompt\'ları "siz"', { todo: 'Faz 2–3' });
-test('v2: modül şemalarında reply.maxLength var', { todo: 'Faz 2' });
-test('v2: doğrulama politikası haritası tüm modları kapsar', { todo: 'Faz 2' });
+// v2 sözleşmesi (Code node sınırı, Switch sırası, kritik kelime ağı, modeller, şemalar, politika, hitap)
+// tests/unit/v2-workflow.test.mjs içinde, v2 export'u üzerinde test edilir.
