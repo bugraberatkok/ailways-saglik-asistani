@@ -1,0 +1,5 @@
+# Satır sonları her platformda LF: migration checksum'ları ve üretilen workflow JSON'u
+# Windows'ta (core.autocrlf) CRLF'ye dönüşüp değişmiş sayılmasın.
+* text=auto eol=lf
+*.pdf binary
+*.png binary
