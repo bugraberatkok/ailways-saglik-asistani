@@ -48,7 +48,8 @@ async function selectUser(userId) {
     if (signal.aborted) return;
     state.conversationId = history.conversation_id;
     showProfile(history.profile, history.missing_profile_fields);
-    renderConversation(history.messages, history.missing_profile_fields.length > 0);
+    ui.renderAppointments(history.appointments?.upcoming ?? []);
+    renderConversation(history.messages, history.missing_profile_fields.length > 0, history.offered_slots ?? []);
   } catch (error) {
     if (signal.aborted) return;
     ui.showStatus('Sohbet geçmişi yüklenemedi.');
@@ -61,17 +62,25 @@ async function selectUser(userId) {
   }
 }
 
-function renderConversation(messages, isNewProfile) {
+function renderConversation(messages, isNewProfile, offeredSlots = []) {
   ui.clearMessages();
   state.removeWelcome = null;
   if (!messages.length) {
     state.removeWelcome = ui.showWelcome(sendNewMessage, { isNewProfile });
     return;
   }
-  for (const message of messages) {
-    if (message.role === 'user') ui.appendUserMessage(message.content, message.created_at);
-    else ui.appendAssistantMessage({ reply: message.content, mode: message.mode, urgency: message.urgency, createdAt: message.created_at });
-  }
+  messages.forEach((message, index) => {
+    if (message.role === 'user') {
+      ui.appendUserMessage(message.content, message.created_at);
+      return;
+    }
+    // Bekleyen saat teklifi varsa butonları yalnızca son asistan mesajında göster.
+    const isLast = index === messages.length - 1;
+    ui.appendAssistantMessage({
+      reply: message.content, mode: message.mode, urgency: message.urgency, createdAt: message.created_at,
+      slots: isLast ? offeredSlots : [], onSlot: sendNewMessage,
+    });
+  });
 }
 
 function startNewConversation() {
@@ -144,8 +153,12 @@ async function send({ request_id, message }, bubble) {
 
     bubble.markSent();
     state.conversationId = response.conversation_id;
-    ui.appendAssistantMessage({ reply: response.reply, mode: response.mode, urgency: response.urgency });
+    ui.appendAssistantMessage({
+      reply: response.reply, mode: response.mode, urgency: response.urgency,
+      slots: response.offered_slots ?? [], onSlot: sendNewMessage,
+    });
     showProfile(response.profile, response.missing_profile_fields);
+    ui.renderAppointments(response.appointments ?? []);
     syncLocalUserLabel(userId, response.profile);
   } catch (error) {
     if (signal.aborted) return;

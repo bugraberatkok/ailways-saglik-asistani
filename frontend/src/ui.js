@@ -10,6 +10,7 @@ export const elements = {
   deleteDataBtn: $('delete-data-btn'),
   profileStatus: $('profile-status'),
   profileBody: $('profile-body'),
+  appointmentsList: $('appointments-list'),
   messageList: $('message-list'),
   errorBanner: $('error-banner'),
   errorText: $('error-text'),
@@ -133,6 +134,25 @@ export function renderProfile(profile, missingFields) {
   }
 }
 
+// --- Randevular --------------------------------------------------------------------
+
+export function renderAppointments(appointments) {
+  const list = elements.appointmentsList;
+  list.replaceChildren();
+  if (!appointments?.length) {
+    list.append(el('li', 'text-slate-500', 'Yaklaşan randevu yok.'));
+    return;
+  }
+  for (const a of appointments) {
+    const item = el('li', 'rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-200');
+    item.append(
+      el('p', 'font-medium text-slate-800', `${a.weekday} ${a.date.split('-').reverse().join('.')} · ${a.time}`),
+      el('p', 'text-xs text-slate-500', `${a.doctor} · ${a.department}`),
+    );
+    list.append(item);
+  }
+}
+
 // --- Mesajlar --------------------------------------------------------------------
 
 export function clearMessages() {
@@ -162,7 +182,7 @@ export function appendUserMessage(text, createdAt = new Date()) {
   };
 }
 
-export function appendAssistantMessage({ reply, mode, urgency = null, createdAt = new Date() }) {
+export function appendAssistantMessage({ reply, mode, urgency = null, createdAt = new Date(), slots = [], onSlot = null }) {
   const isEmergency = mode === 'emergency' || urgency === 'emergency';
   const wrapper = el('div', 'flex flex-col items-start gap-1');
   const bubble = el('div', `max-w-[90%] space-y-2 rounded-2xl rounded-bl-md px-4 py-3 text-[15px] leading-relaxed shadow-sm ring-1 ${
@@ -179,7 +199,22 @@ export function appendAssistantMessage({ reply, mode, urgency = null, createdAt 
   }
   meta.append(el('span', '', timeFormatter.format(new Date(createdAt))));
 
-  wrapper.append(bubble, meta);
+  wrapper.append(bubble);
+  // Randevu ajanının teklif ettiği saatler: tıklanınca saat etiketi normal bir mesaj olarak gönderilir.
+  if (slots.length && onSlot) {
+    const chips = el('div', 'flex flex-wrap gap-2');
+    for (const slot of slots) {
+      const chip = el('button', 'rounded-full bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100 disabled:opacity-50', slot.label);
+      chip.type = 'button';
+      chip.addEventListener('click', () => {
+        chips.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+        onSlot(slot.label);
+      });
+      chips.append(chip);
+    }
+    wrapper.append(chips);
+  }
+  wrapper.append(meta);
   elements.messageList.append(wrapper);
   scrollToBottom();
 }

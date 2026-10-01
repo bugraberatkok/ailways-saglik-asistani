@@ -14,6 +14,11 @@ const POLICIES = {
 };
 
 const ctx = $('Bağlamı hazırla').first().json;
+
+// Ajan model hatası (ör. hız sınırı) yanıt üretemediyse kaydetme: hata, "Hatalar" bandına gider
+// ve kullanıcı "tekrar deneyin" görür. Aynı istek tekrarlanırsa randevu ikinci kez oluşmaz (request_id).
+if (!$json.output && $json.error) throw new Error(String($json.error?.message ?? $json.error));
+
 const out = $json.output && typeof $json.output === 'object' ? $json.output : {};
 const mode = POLICIES[out.mode] ? out.mode : 'chat';
 const policy = POLICIES[mode];
