@@ -107,9 +107,11 @@ test('ana ajan prompt\'u: çağrı kararı, hitap ve yasaklar; yanıt şeması',
   assert.ok(prompt.includes('saygılı "siz" dili'));
   assert.ok(prompt.includes('yönlendirmesi YOK'));
   assert.ok(prompt.includes('denetçiye gönderme'), 'alt ajan yanıtları denetçiye gönderilmez (gereksiz çağrı)');
+  // Şema esnektir (küçük sapmada tur düşmesin); izin verilen değerler açıklamada, kesin doğrulama Çıktı kontrolü'nde.
   const schema = JSON.parse(node('Şifa yanıt şeması').parameters.inputSchema);
-  assert.deepEqual(schema.properties.mode.enum, ['chat', 'greeting', 'symptom_analysis', 'booking']);
-  assert.ok(schema.properties.reply.maxLength > 0);
+  assert.deepEqual(schema.required, ['reply', 'mode']);
+  assert.match(schema.properties.mode.description, /chat, greeting, symptom_analysis, booking/);
+  assert.equal(schema.properties.mode.enum, undefined);
 });
 
 // ---------------------------------------------------------------- Bağlamı hazırla
