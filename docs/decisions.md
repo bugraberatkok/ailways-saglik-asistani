@@ -37,3 +37,19 @@ Kod, ikinci bir model oturumu tarafından salt okunur olarak incelendi. Bulgular
 - Acil durum 404'ten önce ele alınıyor.
 
 Bulguların her biri için test eklendi. Uygulanmayan tek madde, system prompt'taki süslü parantezler için önerilen önlemdi: n8n bunları zaten kaçırıyor (`processMessageTemplates`).
+
+## v2 (Faz 2) kararları — 2026-10-01
+
+Ayrıntı ve gerekçeler: [v2-plan.md](v2-plan.md) §9. Uygulandıkça bu tablo kanıtlarla güncellenir.
+
+| ID | Karar | Durum |
+|---|---|---|
+| ADR-15 | Kaynak gerçeği n8n arayüzü; repo'ya `npm run n8n:pull` ile normalize export (ADR-02'nin yerine geçer). | `n8n:pull` hazır (Faz 0); generator Faz 5'te kaldırılır |
+| ADR-01 (güncelleme) | En fazla 2 Code node'u, notlu ve saf dönüşüm; kararlar IF/Switch'te; SQL sınırı ADR-04/06 ile aynı. | Planlandı |
+| ADR-16 | Router = LLM Chain + şema + Switch, ayrı hızlı model (`gemini-3.5-flash-lite`). | Faz 0'da ölçüldü (6/6) |
+| ADR-17 | Randevu = AI Agent + Postgres tool'ları; kayıt `request_id` ile DB'de teyit edilir, sahte onay gösterilmez. | Agent + tool Faz 0'da doğrulandı |
+| ADR-18 | Selamla yalnızca semptom analizini kilitler. | Planlandı |
+| ADR-19 | Hitap: sohbet/psikolojik modda "sen", diğer modlarda "siz"; geçişlerde sıcaklık korunur. | Planlandı |
+| ADR-20 | Yanıt uzunluğu üç katmanlı (prompt, şema tavanı, deterministik kontrol); kesme yok. | Planlandı |
+| ADR-21 | Doğrulama: politika haritası (Set) → Çıktı kontrolü → tek "Denetçi" zinciri (kontrol + düzeltme); LLM denetim bugün yalnızca sohbette; ilaç/doz/tanı her modda yasak. | Planlandı |
+| ADR-22 | Psikolojik destekte profesyonel yönlendirme yok; tek kriz numarası 112. | Planlandı |

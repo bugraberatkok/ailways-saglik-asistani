@@ -13,6 +13,7 @@
     "build:workflow": "node scripts/build-workflow.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
     "db:seed": "node scripts/db-seed.mjs",
+    "n8n:pull": "node scripts/n8n-pull.mjs",
     "n8n:push": "node scripts/n8n-push.mjs",
     "serve": "node scripts/serve.mjs",
     "test": "node --test \"tests/unit/**/*.test.mjs\"",
