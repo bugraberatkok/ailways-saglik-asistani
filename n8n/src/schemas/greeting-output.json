@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "reply": {
+      "type": "string",
+      "description": "Kullanıcıya gösterilecek Türkçe yanıt"
+    },
+    "profile_updates": {
+      "$ref": "profile-updates.json"
+    }
+  },
+  "required": [
+    "reply"
+  ]
+}

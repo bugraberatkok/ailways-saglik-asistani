@@ -1,0 +1,40 @@
+{
+  "type": "object",
+  "properties": {
+    "reply": {
+      "type": "string",
+      "description": "Kullanıcıya gösterilecek Türkçe yanıt"
+    },
+    "assessment": {
+      "type": "object",
+      "description": "Yalnızca kullanıcı bir sağlık şikayeti anlattıysa doldurulur",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "urgency": {
+          "type": "string",
+          "enum": [
+            "self_care",
+            "routine",
+            "soon",
+            "emergency"
+          ]
+        },
+        "department": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "summary",
+        "urgency"
+      ]
+    },
+    "profile_updates": {
+      "$ref": "profile-updates.json"
+    }
+  },
+  "required": [
+    "reply"
+  ]
+}
