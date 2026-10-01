@@ -1,11 +1,12 @@
-// v2 workflow sözleşmesi (ana ajan + alt ajanlar): n8n'den export edilen JSON
-// (npm run n8n:pull -- --v2) üzerinde çalışır. Code node'ları stub'lanmış $json / $() ile
+// Workflow sözleşmesi (ana ajan + alt ajanlar): n8n'den export edilen JSON
+// (npm run n8n:pull) üzerinde çalışır. Code node'ları stub'lanmış $json / $() ile
 // gerçekten çalıştırılır. Model çağrısı yapmaz.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { normalizeWorkflow, slugify } from '../../scripts/n8n-pull.mjs';
 
-const workflow = JSON.parse(readFileSync(new URL('../../n8n/workflows/health-assistant-v2.json', import.meta.url), 'utf8'));
+const workflow = JSON.parse(readFileSync(new URL('../../n8n/workflows/health-assistant.json', import.meta.url), 'utf8'));
 const node = (name) => {
   const found = workflow.nodes.find((n) => n.name === name);
   assert.ok(found, `node yok: ${name}`);
@@ -204,4 +205,37 @@ test('Çıktı kontrolü: 112 yolu acil kaydı üretir; bilinmeyen konuşmada ye
   assert.equal(out.turn.mode, 'emergency');
   assert.equal(out.turn.conversation_id, null);
   assert.equal(out.turn.symptom_report.urgency, 'emergency');
+});
+
+// ---------------------------------------------------------------- export ve n8n:pull
+
+test('n8n\'de yalnızca sohbet akışı: tek webhook, POST /chat, CORS listesi', () => {
+  const webhooks = byType('n8n-nodes-base.webhook');
+  assert.equal(webhooks.length, 1);
+  assert.equal(webhooks[0].parameters.path, 'health-assistant/chat');
+  assert.equal(webhooks[0].parameters.httpMethod, 'POST');
+  assert.ok(webhooks[0].parameters.options.allowedOrigins);
+});
+
+test('export credential ID içermez (yalnızca ad)', () => {
+  for (const n of workflow.nodes) {
+    for (const ref of Object.values(n.credentials ?? {})) assert.deepEqual(Object.keys(ref), ['name'], n.name);
+  }
+});
+
+test('n8n:pull normalizasyonu: meta alanları ve credential ID\'leri atılır, sıralama kararlıdır', () => {
+  const result = normalizeWorkflow({
+    name: 'W', id: 'x', versionId: 'v', updatedAt: 't', pinData: {}, shared: [],
+    settings: { executionOrder: 'v1', callerPolicy: 'any' },
+    connections: {},
+    nodes: [
+      { name: 'b', type: 't', credentials: { postgres: { id: 'secret-id', name: 'PG' } }, parameters: {} },
+      { name: 'a', type: 't', parameters: { z: 1, a: 2 } },
+    ],
+  });
+  assert.deepEqual(Object.keys(result), ['connections', 'name', 'nodes', 'settings']);
+  assert.deepEqual(result.nodes.map((n) => n.name), ['a', 'b']);
+  assert.deepEqual(result.nodes[1].credentials, { postgres: { name: 'PG' } });
+  assert.deepEqual(result.settings, { executionOrder: 'v1' });
+  assert.equal(slugify('Şifa (ana ajan)'), 'sifa-ana-ajan');
 });

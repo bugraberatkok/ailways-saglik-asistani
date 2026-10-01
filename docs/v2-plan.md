@@ -505,3 +505,16 @@ Kullanıcıya bırakılan Faz 2 testleri (≈ 2–3 çağrı/tur): Selamla'da pr
 | Gemini çağrısı | ≈ 9 |
 
 Kullanıcıya bırakılan Faz 3 testleri: sohbet → randevu → sohbet geçişinde hitap yumuşaklığı (Faz 4 sonrası), "Merhaba" (profil eksik → sohbet), sağlık dışı istek ("bana kod yaz"), kimlik sorusu ("sen yapay zeka mısın?") — yasaklı ifade kullanılmamalı.
+
+## 16. Mimari değişikliği ve teslim (2026-10-01)
+
+Yönetici geri bildirimi ("AI node'ları doğru değil, router kullanma") üzerine §1–§5'teki router + ayrı LLM zincirleri tasarımı **ana ajan + alt ajanlar** mimarisiyle değiştirildi (ADR-23..26, [decisions.md](decisions.md)); güncel anlatım [sunum.md](sunum.md). Bu bölümdeki önceki faz tabloları tarihsel kayıttır.
+
+| Kabul | Sonuç |
+|---|---|
+| PDF senaryo 1 — randevu alma anı | ✅ e2e: saat teklifi (`offered_slots`) → seçim → randevu veritabanında `booked`, Randevularım panelinde |
+| PDF senaryo 2 — "canım sıkkın" | ✅ e2e: sohbet modu, kısa, tıbbi tavsiye/yönlendirme yok |
+| PDF senaryo 3 — ev tavsiyesi | ✅ e2e: randevu onayı + ev önerisi + "nasıl hissediyorsunuz?"; doz ifadesi yok |
+| n8n | 24 node, 2 Code, tek webhook (`/webhook/health-assistant/chat`); v1 pasif |
+| Arayüz | Saat butonları, Randevularım paneli, açık/koyu tema; veri uç noktaları Supabase'ten |
+| Testler | birim 21/21 · veritabanı 29/29 · uçtan uca 9/9 (yapay zeka dahil) |

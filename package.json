@@ -1,6 +1,6 @@
 {
   "name": "ailways-saglik-asistani",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "n8n + Supabase + Gemini tabanlı yapay zeka sağlık asistanı (staj projesi)",
   "type": "module",
@@ -8,9 +8,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build:css && npm run build:workflow",
+    "build": "npm run build:css",
     "build:css": "tailwindcss -i frontend/src/styles.css -o frontend/dist/styles.css --minify",
-    "build:workflow": "node scripts/build-workflow.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
     "db:seed": "node scripts/db-seed.mjs",
     "n8n:pull": "node scripts/n8n-pull.mjs",

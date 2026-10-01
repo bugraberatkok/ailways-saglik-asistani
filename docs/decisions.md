@@ -53,3 +53,12 @@ Ayrıntı ve gerekçeler: [v2-plan.md](v2-plan.md) §9. Uygulandıkça bu tablo 
 | ADR-20 | Yanıt uzunluğu üç katmanlı (prompt, şema tavanı, deterministik kontrol); kesme yok. | Planlandı |
 | ADR-21 | Doğrulama: politika haritası (Set) → Çıktı kontrolü → tek "Denetçi" zinciri (kontrol + düzeltme); LLM denetim bugün yalnızca sohbette; ilaç/doz/tanı her modda yasak. | Planlandı |
 | ADR-22 | Psikolojik destekte profesyonel yönlendirme yok; tek kriz numarası 112. | Planlandı |
+
+### Yönetici geri bildirimi sonrası (2026-10-01)
+
+| ID | Karar | Durum |
+|---|---|---|
+| ADR-23 | **Router ve ayrı LLM zincirleri yerine tek AI Agent ("Şifa") + alt ajanlar** (semptom_ajani, randevu_ajani, denetci_ajani). Niyeti ana ajan anlar ve yalnızca gerektiğinde alt ajan çağırır; basit mesajlar 1 model çağrısıyla biter. ADR-16'nın (router) ve ADR-21'deki ayrı Denetçi bölümünün yerine geçer. | ✅ Uygulandı; PDF'in 3 senaryosu e2e'de |
+| ADR-24 | **n8n'de yalnızca sohbet akışı.** Profil listesi, geçmiş ve veri silme arayüzden Supabase Data API ile çağrılır (`public.demo_profiles`, `conversation_history`, `delete_user_data`: health fonksiyonlarının ince sarmalayıcıları). Tablolar ve health şeması kapalı kalır. | ✅ 34 → 24 node |
+| ADR-25 | **Gemini: ana `gemini-3.5-flash-lite`, yedek `gemini-3.5-flash`.** Preview model ücretsiz katmanda dakikalık sınıra takılıyor, `3.5-flash` sık 503 veriyordu; ajanın çok adımlı turlarında bu, 90 sn'yi aşan yanıtlara yol açtı. | ✅ Semptom turu ~7 sn, randevu ~9 sn |
+| ADR-26 | **Tek kontrol node'u:** "Çıktı kontrolü" kuralları kodun başındaki tabloda tutar, model çağırmaz; ajan hata verirse yanıt kaydedilmez ve kullanıcı "tekrar deneyin" görür (aynı istek ikinci kez randevu oluşturmaz). | ✅ |
