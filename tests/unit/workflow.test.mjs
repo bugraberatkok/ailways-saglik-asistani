@@ -251,3 +251,10 @@ test('Bağlamı hazırla: sohbette soru/destek dönüşümü önceki yanıta gö
   const afterSupport = await run([{ role: 'user', content: 'çağırmadılar' }, { role: 'assistant', content: 'Üzülmende çok haklısın.' }]);
   assert.match(afterSupport.prompt_input, /soruyla BİTİR/);
 });
+
+test('Çıktı kontrolü: şema esnek olduğu için geçersiz mod/ruh hali/aciliyet burada atılır', async () => {
+  const turn = await check({ mode: 'therapy', reply: 'Seni dinliyorum.', mood: 'hurt', urgency: 'very_high', assessment: { summary: 'Baş ağrısı', urgency: 'urgent' } });
+  assert.equal(turn.mode, 'chat', 'bilinmeyen mod güvenli varsayılana (sohbet) düşer');
+  assert.equal(turn.mood, null, 'listede olmayan ruh hali kaydedilmez');
+  assert.equal(turn.symptom_report, null, 'geçersiz aciliyetli değerlendirme rapora yazılmaz');
+});
