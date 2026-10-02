@@ -34,8 +34,13 @@ function observationText(observation) {
   const items = Array.isArray(value) ? value : [value];
   return items.map((item) => (typeof item === 'string' ? item : item?.output ?? '')).join('\n');
 }
+// Model etiketleri bazen kalın (**YANIT:**), küçük harfle (Yanıt:) veya Türkçe harfsiz (DEGERLENDIRME)
+// yazar: satır başındaki etiketi tek biçime çevir. TEKLİF/RANDEVU yalnızca kimlik ile başlıyorsa etikettir.
+const LABEL = /^[ \t]*[*_]*[ \t]*(yan[ıi]t|de[ğg]erlend[iıİ]rme|tekl[iıİ]f(?=[ \t]*[*_]*[ \t]*:[ \t]*[*_]*[ \t]*[0-9a-f]{8}-)|randevu(?=[ \t]*[*_]*[ \t]*:[ \t]*[*_]*[ \t]*[0-9a-f]{8}-))[ \t]*[*_]*[ \t]*:[ \t]*[*_]*[ \t]*/gimu;
+const CANONICAL = { y: 'YANIT', d: 'DEĞERLENDİRME', t: 'TEKLİF', r: 'RANDEVU' };
+const normalizeLabels = (text) => text.replace(LABEL, (_, label) => `${CANONICAL[label[0].toLocaleLowerCase('tr-TR')]}: `);
 function readSubAgent(observation) {
-  const text = observationText(observation);
+  const text = normalizeLabels(observationText(observation));
   const field = (label) => text.match(new RegExp(`^${label}:\\s*([\\s\\S]*?)(?=^(?:YANIT|DEĞERLENDİRME|TEKLİF|RANDEVU):|$(?![\\s\\S]))`, 'mu'))?.[1]?.trim() ?? '';
   const result = { reply: field('YANIT'), assessment: null, slots: [], bookedId: null };
   const evaluation = field('DEĞERLENDİRME');

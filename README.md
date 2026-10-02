@@ -121,6 +121,12 @@ Statik talimat (system mesajı) önde, değişen bağlam kullanıcı mesajında 
 Çağrı sayısı değişmedi (karar hâlâ ajanda). Süreler model yüküne göre 2–30 sn arasında oynadığı için tek denemeyle karşılaştırılmadı.
 İlk denemede randevu ajanının 4 tur sınırı hafta sonu aramasında yetmedi (10 çağrı, 17,6 bin token); sınır 6'ya çıkarıldı.
 
+**Test arayüzü:** `npm run serve:test` → http://localhost:5174. Yalnızca TEST workflow'una bağlanır; demo profilleri yoktur,
+"+ Test kullanıcısı" ile bu tarayıcıya özel kullanıcılar oluşturulur. Üstteki **Prompt'lar** düğmesi dört ajan prompt'unu
+gösterir; *Kaydet* ile değişiklik bir sonraki mesajda kullanılır, *Varsayılana dön* ilk metni geri yükler.
+`frontend-test/` yalnızca farklı olan dosyaları içerir (index.html, config.js, app.js, prompts.js); diğer modüller canlı
+`frontend/src`'den sunulur, canlı arayüz değişmez. Stil: `npm run build:css:test`.
+
 Notlar: `npm run n8n:pull -- --test` test export'unu günceller (`N8N_TEST_WORKFLOW_ID`). `npm run db:seed` düzenlenmiş prompt'ları varsayılana döndürür.
 
 ## Bilinen sınırlamalar

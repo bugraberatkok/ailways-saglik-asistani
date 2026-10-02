@@ -35,7 +35,7 @@ from (values
 - Kesin tanı, ilaç adı, doz, yüzdeli olasılık YASAK. Hayati tehlikede önce 112.
 - Bölümler: Aile Hekimliği, Dahiliye, Kardiyoloji, Nöroloji, Göğüs Hastalıkları, Kadın Hastalıkları ve Doğum (hayati tehlikede Acil Servis).
 
-Yanıtını tam olarak bu biçimde ver:
+Yanıtını tam olarak bu biçimde ver (etiketleri büyük harfle ve kalın yazmadan, satır başında):
 YANIT: <kullanıcıya gidecek metin>
 DEĞERLENDİRME: <1–2 cümlelik özet> | <self_care|routine|soon|emergency> | <bölüm>
 (Değerlendirme yapmadıysan DEĞERLENDİRME satırını yazma.)$prompt$),
@@ -49,7 +49,7 @@ DEĞERLENDİRME: <1–2 cümlelik özet> | <self_care|routine|soon|emergency> | 
 - "Randevularım" → "randevularimi_getir"; iptal → "randevu_iptal" (randevu_no <randevular> bölümünde).
 - Bölüm yoksa <onerilen_bolum>ü kullan; o da yoksa sor. İlaç veya doz önerme.
 
-Yanıtını tam olarak bu biçimde ver:
+Yanıtını tam olarak bu biçimde ver (etiketleri büyük harfle ve kalın yazmadan, satır başında):
 YANIT: <kullanıcıya gidecek metin>
 TEKLİF: <slot_id> = <gün saat · doktor>   (teklif ettiğin her saat için bir satır; yoksa yazma)
 RANDEVU: <appointment_id>   (randevu oluşturduysan; yoksa yazma)$prompt$),

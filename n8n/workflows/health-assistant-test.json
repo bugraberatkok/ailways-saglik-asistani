@@ -339,7 +339,7 @@
   "name": "Sağlık Asistanı v2 · TEST",
   "nodes": [
     {
-      "id": "04ef6766-48e6-4093-bb33-4924528b4823",
+      "id": "f0f1ef44-36ff-4756-bedf-2f43b65d6b2c",
       "name": "112 yanıtını oluştur",
       "notes": "Model beklenmez; ~0,3 sn.",
       "notesInFlow": true,
@@ -364,7 +364,7 @@
       "typeVersion": 3.4
     },
     {
-      "id": "03e77099-6721-4b83-8c2e-3581899eb3ba",
+      "id": "3bb11566-9f5a-4333-b1f8-d7ee03c5ba96",
       "name": "Bağlamı hazırla",
       "notes": "Code 1/2 — saf dönüşüm: her ajana yalnızca ilgili bağlam dilimi; prompt'lar DB'den (eksikse prompt_missing).",
       "notesInFlow": true,
@@ -386,7 +386,7 @@
           "name": "Supabase Postgres (health_app)"
         }
       },
-      "id": "3957b0a1-3b35-4b46-9389-f2870fc08894",
+      "id": "9427ff6d-9994-4de0-82c7-72ea312c9d9a",
       "name": "bos_saatleri_getir",
       "parameters": {
         "descriptionType": "manual",
@@ -405,13 +405,13 @@
       "typeVersion": 2.6
     },
     {
-      "id": "41783fad-bb34-48b3-b755-a609aab430f0",
+      "id": "3d38a19c-dbf3-45ba-ada3-6451169d4daf",
       "name": "Çıktı kontrolü",
       "notes": "Code 2/2 — tek kontrol node'u: kurallar kodun başındaki tabloda.",
       "notesInFlow": true,
       "onError": "continueErrorOutput",
       "parameters": {
-        "jsCode": "// TEST akışı sürümü (Sağlık Asistanı v2 · TEST)\n// ÇIKTI KONTROLÜ — ajanın yanıtını kaydetmeden önceki tek kontrol (model çağırmaz).\n// 1) Ajan çıktısını kayıt biçimine çevirir (profil güncellemesi, semptom özeti, randevu teklifi).\n// 2) Mod kurallarını uygular: sert kural çiğnenirse (doz, \"yapay zekayım\", acilde 112 yok)\n//    modun güvenli yanıtı kullanılır; diğer ihlaller kayda işlenir.\n\n// ---- Kurallar (mod başına) ----\nconst POLICIES = {\n  chat:             { max_sentences: 3, max_questions: 1, forbid: ['ai_disclosure', 'medication', 'diagnosis', 'referral'], safe_reply: 'Seni dinliyorum, biraz daha anlatmak ister misin?' },\n  greeting:         { max_sentences: 4, max_questions: 2, forbid: ['ai_disclosure', 'medication', 'diagnosis'], safe_reply: 'Size daha doğru yardımcı olabilmem için yaşınızı ve bilinen bir rahatsızlığınız olup olmadığını öğrenebilir miyim?' },\n  symptom_analysis: { max_sentences: 7, max_questions: 2, forbid: ['ai_disclosure', 'medication', 'diagnosis'], safe_reply: 'Şikayetinizi biraz daha anlatır mısınız? Ne zamandır sürüyor ve ne kadar şiddetli?' },\n  booking:          { max_sentences: 5, max_questions: 1, forbid: ['ai_disclosure', 'medication'], safe_reply: 'Randevu için hangi bölüm ve gün size uygun?' },\n  emergency:        { forbid: [], safe_reply: \"Lütfen hemen 112'yi arayın veya en yakın acil servise gidin.\" },\n};\n\nconst ctx = $('Bağlamı hazırla').first().json;\n\n// Ajan model hatası (ör. hız sınırı) yanıt üretemediyse kaydetme: hata, \"Hatalar\" bandına gider\n// ve kullanıcı \"tekrar deneyin\" görür. Aynı istek tekrarlanırsa randevu ikinci kez oluşmaz (request_id).\nif (!$json.output && $json.error) throw new Error(String($json.error?.message ?? $json.error));\n\nconst out = $json.output && typeof $json.output === 'object' ? $json.output : {};\n\n// ---- Alt ajan yanıtı araç sonucundan okunur (TEST): ana ajan alt ajanın metnini yeniden yazmaz ----\n// Alt ajanlar sabit biçimde yanıt verir: YANIT: / DEĞERLENDİRME: / TEKLİF: / RANDEVU: satırları.\nconst UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n// n8n alt ajan sonucunu '[{\"output\":\"…\"}]' JSON metni olarak verir; hata turunda '[{\"error\":\"…\"}]'.\nfunction observationText(observation) {\n  let value = observation;\n  if (typeof value === 'string') {\n    try { value = JSON.parse(value); } catch { return value; }\n  }\n  const items = Array.isArray(value) ? value : [value];\n  return items.map((item) => (typeof item === 'string' ? item : item?.output ?? '')).join('\\n');\n}\nfunction readSubAgent(observation) {\n  const text = observationText(observation);\n  const field = (label) => text.match(new RegExp(`^${label}:\\\\s*([\\\\s\\\\S]*?)(?=^(?:YANIT|DEĞERLENDİRME|TEKLİF|RANDEVU):|$(?![\\\\s\\\\S]))`, 'mu'))?.[1]?.trim() ?? '';\n  const result = { reply: field('YANIT'), assessment: null, slots: [], bookedId: null };\n  const evaluation = field('DEĞERLENDİRME');\n  if (evaluation) {\n    const parts = evaluation.split('|');\n    if (parts.length >= 3) {\n      // Sağdan böl: özet '|' içerebilir.\n      const department = parts.pop().trim();\n      const urgency = parts.pop().trim();\n      result.assessment = { summary: parts.join('|').trim(), urgency, department };\n    }\n  }\n  for (const [, slotId, label] of text.matchAll(/^TEKLİF:\\s*(\\S+)\\s*=\\s*(.+)$/gmu)) {\n    if (UUID.test(slotId)) result.slots.push({ slot_id: slotId.toLowerCase(), label: label.trim() });\n  }\n  const booked = text.match(/^RANDEVU:\\s*(\\S+)/mu)?.[1];\n  if (booked && UUID.test(booked)) result.bookedId = booked.toLowerCase();\n  return result;\n}\nconst SUB_AGENTS = { semptom_ajani: 'symptom_analysis', randevu_ajani: 'booking' };\n// Son BAŞARILI alt ajan çağrısı (tur sınırına takılan çağrı YANIT içermez, atlanır).\nconst sub = [...($json.intermediateSteps ?? [])].reverse()\n  .filter((s) => SUB_AGENTS[s?.action?.tool])\n  .map((s) => ({ source: s.action.tool, ...readSubAgent(s.observation) }))\n  .find((r) => r.reply) ?? null;\n\nconst mode = POLICIES[out.mode] ? out.mode : (sub ? SUB_AGENTS[sub.source] : 'chat');\nconst policy = POLICIES[mode];\nlet reply = (sub?.reply || (typeof out.reply === 'string' ? out.reply : '')).trim();\n// Ne ana ajan yanıt yazdı ne de alt ajandan YANIT okunabildi: kaydetme, açık hata ver.\nif (!reply && mode !== 'emergency') throw new Error('agent_reply_missing');\n\n// ---- Kurallar: Türkçe harflerde JS'in \\b sınırı çalışmaz; Unicode-farkında sınır ----\nconst S = '(?<![\\\\p{L}])';\nconst E = '(?![\\\\p{L}])';\nconst rule = (source) => new RegExp(source, 'iu');\nconst DOSE = rule(`${S}\\\\d+\\\\s*(mg|ml|mcg)${E}|günde\\\\s+\\\\d+\\\\s*(kez|defa|tablet|doz)`);\nconst RULES = {\n  ai_disclosure: rule(`yapay zek|dil model|${S}bir bot(um)?${E}|gerçek bir insan değil|üzgünüm,? ben bir`),\n  medication: rule(`${DOSE.source}|${S}(ağrı kesici|antibiyotik|parasetamol|ibuprofen)\\\\s+(alın|al|kullanın|kullan)${E}|${S}ila[çc](ı|ını|ınızı)?\\\\s+(alın|al|kullanın|kullan)${E}`),\n  diagnosis: rule(`${S}(sizde|sende)\\\\s+\\\\S+\\\\s+var${E}|teşhisiniz|kesinlikle\\\\s+\\\\S+(dır|dir|tır|tir|dur|dür)${E}`),\n  referral: rule(`psikolo[gğ]|psikiyatr|terapist|${S}terapi${E}|uzmana?\\\\s+(görün|başvur|danış)`),\n};\n\n// ---- Profil güncellemeleri: yalnızca geçerli ve açıkça söylenmiş değerler ----\nconst fold = (s) => s.trim().toLocaleLowerCase('tr-TR').replace(/ı/g, 'i');\nfunction cleanList(value) {\n  if (!Array.isArray(value)) return [];\n  const seen = new Set();\n  return value.filter((item) => typeof item === 'string')\n    .map((item) => item.replace(/\\s+/g, ' ').trim())\n    .filter((item) => item && item.length <= 80 && !seen.has(fold(item)) && seen.add(fold(item)))\n    .slice(0, 10);\n}\nfunction buildProfilePatch(updates, current) {\n  const patch = {};\n  current = current ?? {};\n  if (!updates || typeof updates !== 'object') return patch;\n  if (typeof updates.display_name === 'string') {\n    const name = updates.display_name.replace(/\\s+/g, ' ').trim();\n    if (name && name.length <= 60 && !/[<>{}\\d]/.test(name) && name !== current.display_name) patch.display_name = name;\n  }\n  if (mode === 'chat' || mode === 'booking') return patch; // bu modlarda yalnızca ad\n  const age = typeof updates.age === 'string' && /^\\d{1,3}$/.test(updates.age.trim()) ? Number(updates.age) : updates.age;\n  if (Number.isInteger(age) && age >= 1 && age <= 120) {\n    if (current.age_status !== 'provided' || current.age !== age) Object.assign(patch, { age_status: 'provided', age });\n  } else if (updates.age_declined === true && !['provided', 'declined'].includes(current.age_status)) {\n    patch.age_status = 'declined';\n  }\n  if (['female', 'male', 'other', 'declined'].includes(updates.sex) && updates.sex !== current.sex) patch.sex = updates.sex;\n  const columns = { conditions: 'chronic_conditions', medications: 'medications', allergies: 'allergies' };\n  const resulting = {};\n  for (const [key, column] of Object.entries(columns)) {\n    const existing = current[column] ?? [];\n    const existingKeys = new Set(existing.map(fold));\n    const removeKeys = new Set(cleanList(updates[`${key}_remove`]).map(fold));\n    const remove = existing.filter((item) => removeKeys.has(fold(item)));\n    const kept = existing.filter((item) => !removeKeys.has(fold(item)));\n    const add = cleanList(updates[`${key}_add`])\n      .filter((item) => !existingKeys.has(fold(item)) && !removeKeys.has(fold(item)))\n      .slice(0, Math.max(0, 15 - kept.length)); // DB sınırı: en fazla 15 öğe\n    if (add.length) patch[`${key}_add`] = add;\n    if (remove.length) patch[`${key}_remove`] = remove;\n    resulting[key] = [...kept, ...add];\n  }\n  const requested = ['provided', 'none', 'declined'].includes(updates.history_status) ? updates.history_status : null;\n  let status = current.history_status ?? 'unknown';\n  if (requested === 'none') {\n    if ((current.chronic_conditions ?? []).length) patch.conditions_remove = [...current.chronic_conditions];\n    delete patch.conditions_add;\n    status = 'none';\n  } else if (resulting.conditions.length) status = 'provided';\n  else if (requested === 'declined') status = 'declined';\n  else if (status === 'provided') status = 'none';\n  if (status !== (current.history_status ?? 'unknown')) patch.history_status = status;\n  return patch;\n}\n\n// ---- Semptom özeti ve aciliyet ----\nconst URGENCIES = ['self_care', 'routine', 'soon', 'emergency'];\nfunction report() {\n  const a = sub?.assessment; // TEST: değerlendirme semptom_ajani'nin DEĞERLENDİRME satırından\n  if (a && typeof a === 'object' && String(a.summary ?? '').trim().length >= 3 && URGENCIES.includes(a.urgency)) {\n    return { summary: String(a.summary).replace(/\\s+/g, ' ').trim().slice(0, 500), urgency: a.urgency, department: String(a.department ?? '').trim().slice(0, 80) || null };\n  }\n  if (out.self_harm_risk === true || out.urgency === 'emergency') {\n    return { summary: `Acil durum işareti: \"${ctx.message.slice(0, 300)}\"`, urgency: 'emergency', department: 'Acil Servis' };\n  }\n  return null;\n}\nconst symptomReport = report();\nconst urgency = symptomReport?.urgency ?? null;\nif (urgency === 'emergency' && !reply.includes('112')) {\n  reply = `${reply}\\n\\n${mode === 'chat'\n    ? \"**Yalnız değilsin. Kendini güvende hissetmiyorsan lütfen hemen 112'yi ara.**\"\n    : \"**Belirttikleriniz acil olabilir: lütfen hemen 112'yi arayın veya en yakın acil servise gidin.**\"}`.trim();\n}\n\n// ---- Kurallara göre kontrol ----\nconst sentences = reply.replace(/^\\s*[-•]\\s+.*$/gm, '').split(/[.!?…]+(?:\\s|$)/).filter((s) => s.trim().length > 1).length;\nconst questions = (reply.match(/\\?/g) ?? []).length;\nconst violations = [];\nfor (const name of policy.forbid ?? []) if (RULES[name].test(reply)) violations.push(name);\nif (policy.max_sentences && sentences > policy.max_sentences) violations.push(`too_many_sentences:${sentences}>${policy.max_sentences}`);\nif (policy.max_questions !== undefined && questions > policy.max_questions) violations.push(`too_many_questions:${questions}>${policy.max_questions}`);\nconst hardBreak = !reply || RULES.ai_disclosure.test(reply) || DOSE.test(reply) || (urgency === 'emergency' && !reply.includes('112'));\nif (hardBreak) reply = urgency === 'emergency' ? POLICIES.emergency.safe_reply : policy.safe_reply;\n\n// ---- Randevu teklifi (bir sonraki tur \"14:00\" cevabı için) ----\n// TEST: teklif ve randevu randevu_ajani'nin TEKLİF/RANDEVU satırlarından (UUID doğrulanmış, en fazla 4).\n// Saatin gerçekten boş olduğunu veritabanı garanti eder: geçersiz/dolu saat book_appointment'ta slot_taken.\nconst slots = (sub?.slots ?? []).slice(0, 4);\nconst bookedId = sub?.bookedId ?? null;\n\nreturn {\n  json: {\n    turn: {\n      user_id: ctx.user_id,\n      request_id: ctx.request_id,\n      // Acil yanıt bilinmeyen/başkasına ait konuşmada da verilir; yeni konuşmaya kaydedilir.\n      conversation_id: ctx.conversation_found ? ctx.conversation_id : null,\n      user_message: ctx.message,\n      assistant_reply: reply,\n      mode,\n      profile_patch: buildProfilePatch(out.profile_updates, ctx.profile),\n      symptom_report: symptomReport,\n      mood: ['calm', 'worried', 'sad', 'lonely', 'anxious', 'angry', 'neutral'].includes(out.mood) ? out.mood : null,\n      active_module: mode,\n      pending_action: slots.length ? { type: 'slot_offer', slots } : null,\n      expects_booking: bookedId !== null,\n      unverified_booking_reply: 'Randevu kaydı oluşmadı, tekrar dener misiniz?',\n      validation: { checked: true, fallback: hardBreak, violations },\n    },\n  },\n};\n",
+        "jsCode": "// TEST akışı sürümü (Sağlık Asistanı v2 · TEST)\n// ÇIKTI KONTROLÜ — ajanın yanıtını kaydetmeden önceki tek kontrol (model çağırmaz).\n// 1) Ajan çıktısını kayıt biçimine çevirir (profil güncellemesi, semptom özeti, randevu teklifi).\n// 2) Mod kurallarını uygular: sert kural çiğnenirse (doz, \"yapay zekayım\", acilde 112 yok)\n//    modun güvenli yanıtı kullanılır; diğer ihlaller kayda işlenir.\n\n// ---- Kurallar (mod başına) ----\nconst POLICIES = {\n  chat:             { max_sentences: 3, max_questions: 1, forbid: ['ai_disclosure', 'medication', 'diagnosis', 'referral'], safe_reply: 'Seni dinliyorum, biraz daha anlatmak ister misin?' },\n  greeting:         { max_sentences: 4, max_questions: 2, forbid: ['ai_disclosure', 'medication', 'diagnosis'], safe_reply: 'Size daha doğru yardımcı olabilmem için yaşınızı ve bilinen bir rahatsızlığınız olup olmadığını öğrenebilir miyim?' },\n  symptom_analysis: { max_sentences: 7, max_questions: 2, forbid: ['ai_disclosure', 'medication', 'diagnosis'], safe_reply: 'Şikayetinizi biraz daha anlatır mısınız? Ne zamandır sürüyor ve ne kadar şiddetli?' },\n  booking:          { max_sentences: 5, max_questions: 1, forbid: ['ai_disclosure', 'medication'], safe_reply: 'Randevu için hangi bölüm ve gün size uygun?' },\n  emergency:        { forbid: [], safe_reply: \"Lütfen hemen 112'yi arayın veya en yakın acil servise gidin.\" },\n};\n\nconst ctx = $('Bağlamı hazırla').first().json;\n\n// Ajan model hatası (ör. hız sınırı) yanıt üretemediyse kaydetme: hata, \"Hatalar\" bandına gider\n// ve kullanıcı \"tekrar deneyin\" görür. Aynı istek tekrarlanırsa randevu ikinci kez oluşmaz (request_id).\nif (!$json.output && $json.error) throw new Error(String($json.error?.message ?? $json.error));\n\nconst out = $json.output && typeof $json.output === 'object' ? $json.output : {};\n\n// ---- Alt ajan yanıtı araç sonucundan okunur (TEST): ana ajan alt ajanın metnini yeniden yazmaz ----\n// Alt ajanlar sabit biçimde yanıt verir: YANIT: / DEĞERLENDİRME: / TEKLİF: / RANDEVU: satırları.\nconst UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\n// n8n alt ajan sonucunu '[{\"output\":\"…\"}]' JSON metni olarak verir; hata turunda '[{\"error\":\"…\"}]'.\nfunction observationText(observation) {\n  let value = observation;\n  if (typeof value === 'string') {\n    try { value = JSON.parse(value); } catch { return value; }\n  }\n  const items = Array.isArray(value) ? value : [value];\n  return items.map((item) => (typeof item === 'string' ? item : item?.output ?? '')).join('\\n');\n}\n// Model etiketleri bazen kalın (**YANIT:**), küçük harfle (Yanıt:) veya Türkçe harfsiz (DEGERLENDIRME)\n// yazar: satır başındaki etiketi tek biçime çevir. TEKLİF/RANDEVU yalnızca kimlik ile başlıyorsa etikettir.\nconst LABEL = /^[ \\t]*[*_]*[ \\t]*(yan[ıi]t|de[ğg]erlend[iıİ]rme|tekl[iıİ]f(?=[ \\t]*[*_]*[ \\t]*:[ \\t]*[*_]*[ \\t]*[0-9a-f]{8}-)|randevu(?=[ \\t]*[*_]*[ \\t]*:[ \\t]*[*_]*[ \\t]*[0-9a-f]{8}-))[ \\t]*[*_]*[ \\t]*:[ \\t]*[*_]*[ \\t]*/gimu;\nconst CANONICAL = { y: 'YANIT', d: 'DEĞERLENDİRME', t: 'TEKLİF', r: 'RANDEVU' };\nconst normalizeLabels = (text) => text.replace(LABEL, (_, label) => `${CANONICAL[label[0].toLocaleLowerCase('tr-TR')]}: `);\nfunction readSubAgent(observation) {\n  const text = normalizeLabels(observationText(observation));\n  const field = (label) => text.match(new RegExp(`^${label}:\\\\s*([\\\\s\\\\S]*?)(?=^(?:YANIT|DEĞERLENDİRME|TEKLİF|RANDEVU):|$(?![\\\\s\\\\S]))`, 'mu'))?.[1]?.trim() ?? '';\n  const result = { reply: field('YANIT'), assessment: null, slots: [], bookedId: null };\n  const evaluation = field('DEĞERLENDİRME');\n  if (evaluation) {\n    const parts = evaluation.split('|');\n    if (parts.length >= 3) {\n      // Sağdan böl: özet '|' içerebilir.\n      const department = parts.pop().trim();\n      const urgency = parts.pop().trim();\n      result.assessment = { summary: parts.join('|').trim(), urgency, department };\n    }\n  }\n  for (const [, slotId, label] of text.matchAll(/^TEKLİF:\\s*(\\S+)\\s*=\\s*(.+)$/gmu)) {\n    if (UUID.test(slotId)) result.slots.push({ slot_id: slotId.toLowerCase(), label: label.trim() });\n  }\n  const booked = text.match(/^RANDEVU:\\s*(\\S+)/mu)?.[1];\n  if (booked && UUID.test(booked)) result.bookedId = booked.toLowerCase();\n  return result;\n}\nconst SUB_AGENTS = { semptom_ajani: 'symptom_analysis', randevu_ajani: 'booking' };\n// Son BAŞARILI alt ajan çağrısı (tur sınırına takılan çağrı YANIT içermez, atlanır).\nconst sub = [...($json.intermediateSteps ?? [])].reverse()\n  .filter((s) => SUB_AGENTS[s?.action?.tool])\n  .map((s) => ({ source: s.action.tool, ...readSubAgent(s.observation) }))\n  .find((r) => r.reply) ?? null;\n\nconst mode = POLICIES[out.mode] ? out.mode : (sub ? SUB_AGENTS[sub.source] : 'chat');\nconst policy = POLICIES[mode];\nlet reply = (sub?.reply || (typeof out.reply === 'string' ? out.reply : '')).trim();\n// Ne ana ajan yanıt yazdı ne de alt ajandan YANIT okunabildi: kaydetme, açık hata ver.\nif (!reply && mode !== 'emergency') throw new Error('agent_reply_missing');\n\n// ---- Kurallar: Türkçe harflerde JS'in \\b sınırı çalışmaz; Unicode-farkında sınır ----\nconst S = '(?<![\\\\p{L}])';\nconst E = '(?![\\\\p{L}])';\nconst rule = (source) => new RegExp(source, 'iu');\nconst DOSE = rule(`${S}\\\\d+\\\\s*(mg|ml|mcg)${E}|günde\\\\s+\\\\d+\\\\s*(kez|defa|tablet|doz)`);\nconst RULES = {\n  ai_disclosure: rule(`yapay zek|dil model|${S}bir bot(um)?${E}|gerçek bir insan değil|üzgünüm,? ben bir`),\n  medication: rule(`${DOSE.source}|${S}(ağrı kesici|antibiyotik|parasetamol|ibuprofen)\\\\s+(alın|al|kullanın|kullan)${E}|${S}ila[çc](ı|ını|ınızı)?\\\\s+(alın|al|kullanın|kullan)${E}`),\n  diagnosis: rule(`${S}(sizde|sende)\\\\s+\\\\S+\\\\s+var${E}|teşhisiniz|kesinlikle\\\\s+\\\\S+(dır|dir|tır|tir|dur|dür)${E}`),\n  referral: rule(`psikolo[gğ]|psikiyatr|terapist|${S}terapi${E}|uzmana?\\\\s+(görün|başvur|danış)`),\n};\n\n// ---- Profil güncellemeleri: yalnızca geçerli ve açıkça söylenmiş değerler ----\nconst fold = (s) => s.trim().toLocaleLowerCase('tr-TR').replace(/ı/g, 'i');\nfunction cleanList(value) {\n  if (!Array.isArray(value)) return [];\n  const seen = new Set();\n  return value.filter((item) => typeof item === 'string')\n    .map((item) => item.replace(/\\s+/g, ' ').trim())\n    .filter((item) => item && item.length <= 80 && !seen.has(fold(item)) && seen.add(fold(item)))\n    .slice(0, 10);\n}\nfunction buildProfilePatch(updates, current) {\n  const patch = {};\n  current = current ?? {};\n  if (!updates || typeof updates !== 'object') return patch;\n  if (typeof updates.display_name === 'string') {\n    const name = updates.display_name.replace(/\\s+/g, ' ').trim();\n    if (name && name.length <= 60 && !/[<>{}\\d]/.test(name) && name !== current.display_name) patch.display_name = name;\n  }\n  if (mode === 'chat' || mode === 'booking') return patch; // bu modlarda yalnızca ad\n  const age = typeof updates.age === 'string' && /^\\d{1,3}$/.test(updates.age.trim()) ? Number(updates.age) : updates.age;\n  if (Number.isInteger(age) && age >= 1 && age <= 120) {\n    if (current.age_status !== 'provided' || current.age !== age) Object.assign(patch, { age_status: 'provided', age });\n  } else if (updates.age_declined === true && !['provided', 'declined'].includes(current.age_status)) {\n    patch.age_status = 'declined';\n  }\n  if (['female', 'male', 'other', 'declined'].includes(updates.sex) && updates.sex !== current.sex) patch.sex = updates.sex;\n  const columns = { conditions: 'chronic_conditions', medications: 'medications', allergies: 'allergies' };\n  const resulting = {};\n  for (const [key, column] of Object.entries(columns)) {\n    const existing = current[column] ?? [];\n    const existingKeys = new Set(existing.map(fold));\n    const removeKeys = new Set(cleanList(updates[`${key}_remove`]).map(fold));\n    const remove = existing.filter((item) => removeKeys.has(fold(item)));\n    const kept = existing.filter((item) => !removeKeys.has(fold(item)));\n    const add = cleanList(updates[`${key}_add`])\n      .filter((item) => !existingKeys.has(fold(item)) && !removeKeys.has(fold(item)))\n      .slice(0, Math.max(0, 15 - kept.length)); // DB sınırı: en fazla 15 öğe\n    if (add.length) patch[`${key}_add`] = add;\n    if (remove.length) patch[`${key}_remove`] = remove;\n    resulting[key] = [...kept, ...add];\n  }\n  const requested = ['provided', 'none', 'declined'].includes(updates.history_status) ? updates.history_status : null;\n  let status = current.history_status ?? 'unknown';\n  if (requested === 'none') {\n    if ((current.chronic_conditions ?? []).length) patch.conditions_remove = [...current.chronic_conditions];\n    delete patch.conditions_add;\n    status = 'none';\n  } else if (resulting.conditions.length) status = 'provided';\n  else if (requested === 'declined') status = 'declined';\n  else if (status === 'provided') status = 'none';\n  if (status !== (current.history_status ?? 'unknown')) patch.history_status = status;\n  return patch;\n}\n\n// ---- Semptom özeti ve aciliyet ----\nconst URGENCIES = ['self_care', 'routine', 'soon', 'emergency'];\nfunction report() {\n  const a = sub?.assessment; // TEST: değerlendirme semptom_ajani'nin DEĞERLENDİRME satırından\n  if (a && typeof a === 'object' && String(a.summary ?? '').trim().length >= 3 && URGENCIES.includes(a.urgency)) {\n    return { summary: String(a.summary).replace(/\\s+/g, ' ').trim().slice(0, 500), urgency: a.urgency, department: String(a.department ?? '').trim().slice(0, 80) || null };\n  }\n  if (out.self_harm_risk === true || out.urgency === 'emergency') {\n    return { summary: `Acil durum işareti: \"${ctx.message.slice(0, 300)}\"`, urgency: 'emergency', department: 'Acil Servis' };\n  }\n  return null;\n}\nconst symptomReport = report();\nconst urgency = symptomReport?.urgency ?? null;\nif (urgency === 'emergency' && !reply.includes('112')) {\n  reply = `${reply}\\n\\n${mode === 'chat'\n    ? \"**Yalnız değilsin. Kendini güvende hissetmiyorsan lütfen hemen 112'yi ara.**\"\n    : \"**Belirttikleriniz acil olabilir: lütfen hemen 112'yi arayın veya en yakın acil servise gidin.**\"}`.trim();\n}\n\n// ---- Kurallara göre kontrol ----\nconst sentences = reply.replace(/^\\s*[-•]\\s+.*$/gm, '').split(/[.!?…]+(?:\\s|$)/).filter((s) => s.trim().length > 1).length;\nconst questions = (reply.match(/\\?/g) ?? []).length;\nconst violations = [];\nfor (const name of policy.forbid ?? []) if (RULES[name].test(reply)) violations.push(name);\nif (policy.max_sentences && sentences > policy.max_sentences) violations.push(`too_many_sentences:${sentences}>${policy.max_sentences}`);\nif (policy.max_questions !== undefined && questions > policy.max_questions) violations.push(`too_many_questions:${questions}>${policy.max_questions}`);\nconst hardBreak = !reply || RULES.ai_disclosure.test(reply) || DOSE.test(reply) || (urgency === 'emergency' && !reply.includes('112'));\nif (hardBreak) reply = urgency === 'emergency' ? POLICIES.emergency.safe_reply : policy.safe_reply;\n\n// ---- Randevu teklifi (bir sonraki tur \"14:00\" cevabı için) ----\n// TEST: teklif ve randevu randevu_ajani'nin TEKLİF/RANDEVU satırlarından (UUID doğrulanmış, en fazla 4).\n// Saatin gerçekten boş olduğunu veritabanı garanti eder: geçersiz/dolu saat book_appointment'ta slot_taken.\nconst slots = (sub?.slots ?? []).slice(0, 4);\nconst bookedId = sub?.bookedId ?? null;\n\nreturn {\n  json: {\n    turn: {\n      user_id: ctx.user_id,\n      request_id: ctx.request_id,\n      // Acil yanıt bilinmeyen/başkasına ait konuşmada da verilir; yeni konuşmaya kaydedilir.\n      conversation_id: ctx.conversation_found ? ctx.conversation_id : null,\n      user_message: ctx.message,\n      assistant_reply: reply,\n      mode,\n      profile_patch: buildProfilePatch(out.profile_updates, ctx.profile),\n      symptom_report: symptomReport,\n      mood: ['calm', 'worried', 'sad', 'lonely', 'anxious', 'angry', 'neutral'].includes(out.mood) ? out.mood : null,\n      active_module: mode,\n      pending_action: slots.length ? { type: 'slot_offer', slots } : null,\n      expects_booking: bookedId !== null,\n      unverified_booking_reply: 'Randevu kaydı oluşmadı, tekrar dener misiniz?',\n      validation: { checked: true, fallback: hardBreak, violations },\n    },\n  },\n};\n",
         "mode": "runOnceForEachItem"
       },
       "position": [
@@ -427,7 +427,7 @@
           "name": "Supabase Postgres (health_app)"
         }
       },
-      "id": "bc7adfd5-69e0-437a-90ef-4adcaa50a982",
+      "id": "932bee9a-91b4-4cc6-9210-3eb17b6e505c",
       "name": "DB: bağlamı yükle",
       "onError": "continueErrorOutput",
       "parameters": {
@@ -450,7 +450,7 @@
           "name": "Supabase Postgres (health_app)"
         }
       },
-      "id": "3d258fba-d65d-445a-870a-55ca9e1dc0bb",
+      "id": "c834ac1a-b042-494a-a93a-15e0232fe15d",
       "name": "DB: turu kaydet",
       "onError": "continueErrorOutput",
       "parameters": {
@@ -468,7 +468,7 @@
       "typeVersion": 2.6
     },
     {
-      "id": "bc7239e9-a1bc-4fb8-a228-46f6269582eb",
+      "id": "d1ee491c-51c2-4641-b63e-415d4d7bc272",
       "name": "denetci_ajani",
       "notes": "✅ Denetçi; ana ajan gerekli görürse çağırır.",
       "notesInFlow": true,
@@ -494,7 +494,7 @@
           "name": "Google Gemini(PaLM) Api account"
         }
       },
-      "id": "88091b21-96d9-498d-a0af-2014f9753d1b",
+      "id": "bccc656c-a5d0-4afc-be1f-a409338a4035",
       "name": "Gemini (ana)",
       "parameters": {
         "modelName": "models/gemini-3.5-flash-lite",
@@ -516,7 +516,7 @@
           "name": "Google Gemini(PaLM) Api account"
         }
       },
-      "id": "c973f0d5-060e-4949-a4b0-a357e2cd3936",
+      "id": "12776c95-2a08-4ceb-a5dd-4c8a0324d795",
       "name": "Gemini (yedek)",
       "parameters": {
         "modelName": "models/gemini-3.5-flash",
@@ -533,7 +533,7 @@
       "typeVersion": 1.2
     },
     {
-      "id": "504183e0-91a4-44f2-8176-2f35bc46e2f4",
+      "id": "def6a425-5b75-4917-8818-eab43faa8907",
       "name": "Hata yanıtı",
       "parameters": {
         "options": {
@@ -550,7 +550,7 @@
       "typeVersion": 1.5
     },
     {
-      "id": "7f474fd8-8f04-47e5-a427-b81be6197ac5",
+      "id": "ca5c5c7c-6281-40c9-9f67-0b7b4369cc1f",
       "name": "Hatayı HTTP'ye çevir",
       "notes": "Adıma ve hataya göre tek bir hata kodu; kod → HTTP durumu \"Hata yanıtı\"nda.",
       "notesInFlow": true,
@@ -581,7 +581,7 @@
       "typeVersion": 3.4
     },
     {
-      "id": "4b034431-02fd-4591-878e-95914ec006fe",
+      "id": "15d65f73-58dc-4857-9b39-22ed2b643945",
       "name": "İsteği normalize et",
       "parameters": {
         "assignments": {
@@ -628,7 +628,7 @@
       "typeVersion": 3.4
     },
     {
-      "id": "4fd54c60-d2aa-484e-913d-35428349b554",
+      "id": "ab355925-5da9-4a0d-a3b9-d68173e70077",
       "name": "İstek geçerli mi?",
       "parameters": {
         "conditions": {
@@ -700,7 +700,7 @@
       "typeVersion": 2.3
     },
     {
-      "id": "f53ae768-263c-465c-b016-bffd6694e4c2",
+      "id": "0040dfcb-a951-4a79-b928-414bf9181e48",
       "name": "Not: 1 · Giriş",
       "parameters": {
         "color": 7,
@@ -716,7 +716,7 @@
       "typeVersion": 1
     },
     {
-      "id": "e9a4c234-d214-4e50-a426-7d1471d59c63",
+      "id": "3a6cfbdf-4f21-4477-81ca-0e5b28fd383d",
       "name": "Not: 2 · Ajan",
       "parameters": {
         "color": 5,
@@ -732,7 +732,7 @@
       "typeVersion": 1
     },
     {
-      "id": "903ca35c-defa-4c12-8468-7cf4a89cdf57",
+      "id": "6758ff27-6a83-466e-aa20-6c1409833e65",
       "name": "Not: 3 · Kontrol ve kayıt",
       "parameters": {
         "color": 4,
@@ -748,7 +748,7 @@
       "typeVersion": 1
     },
     {
-      "id": "ca60db03-3ad6-4213-9289-6b7fb833c1c0",
+      "id": "26254e3d-2a13-4da0-86ec-d3df495e3d8b",
       "name": "Not: Hatalar",
       "parameters": {
         "color": 7,
@@ -764,7 +764,7 @@
       "typeVersion": 1
     },
     {
-      "id": "880cf3e9-14af-4ce5-bfa0-3fb1b0d9e564",
+      "id": "119eb448-1bae-4647-bd36-7ff90f9aa1f6",
       "name": "Ön kontrol",
       "parameters": {
         "options": {
@@ -858,12 +858,12 @@
       "typeVersion": 3.4
     },
     {
-      "id": "878a1406-f2d1-4f9e-877c-aae173a25f00",
+      "id": "20ce0f2c-1bbf-4448-b05f-f6733919702f",
       "name": "POST /chat",
       "parameters": {
         "httpMethod": "POST",
         "options": {
-          "allowedOrigins": "http://localhost:5173,http://127.0.0.1:5173"
+          "allowedOrigins": "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
         },
         "path": "health-assistant-test/chat",
         "responseMode": "responseNode"
@@ -874,10 +874,10 @@
       ],
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "0c49c3b8-0857-4fa0-b585-b2ed573de30b"
+      "webhookId": "27cbf7a8-8216-441c-890b-c5e8245cb408"
     },
     {
-      "id": "73ffbbaa-23a2-4909-889e-fc4ba7973ac6",
+      "id": "3f1e8b7d-be74-4bd5-841a-80f689f9e396",
       "name": "randevu_ajani",
       "notes": "📅 Randevu uzmanı; 4 veritabanı aracı kullanır.",
       "notesInFlow": true,
@@ -903,7 +903,7 @@
           "name": "Supabase Postgres (health_app)"
         }
       },
-      "id": "4bbeebf2-b548-45b1-bcf9-b7557e22f68f",
+      "id": "dcce9617-b5da-4c09-b6c0-7a5465886423",
       "name": "randevu_iptal",
       "parameters": {
         "descriptionType": "manual",
@@ -927,7 +927,7 @@
           "name": "Supabase Postgres (health_app)"
         }
       },
-      "id": "64ca5015-2632-40b5-8991-b27a0cab791c",
+      "id": "be3cb742-add3-454c-9cb3-c6aa15a2d131",
       "name": "randevu_olustur",
       "parameters": {
         "descriptionType": "manual",
@@ -951,7 +951,7 @@
           "name": "Supabase Postgres (health_app)"
         }
       },
-      "id": "5d0d645a-5168-475c-9dc6-7c23aa696b8c",
+      "id": "719544fc-71bf-42ab-996b-d360eea801ac",
       "name": "randevularimi_getir",
       "parameters": {
         "descriptionType": "manual",
@@ -970,7 +970,7 @@
       "typeVersion": 2.6
     },
     {
-      "id": "977a6d5d-cecd-4664-9122-ba111c97f9dc",
+      "id": "d235854a-6cb6-4d91-b9e0-246ba28dfe14",
       "name": "semptom_ajani",
       "notes": "🩺 Semptom analizi uzmanı (\"siz\").",
       "notesInFlow": true,
@@ -991,7 +991,7 @@
       "typeVersion": 3
     },
     {
-      "id": "882fe2d2-0307-4b1c-b90d-f01458a3fd1c",
+      "id": "e9a411f3-a144-4947-9bae-37031b34cb9f",
       "name": "Şifa (ana ajan)",
       "notes": "TEST: prompt DB'den; alt ajan yanıtı ara adımlardan okunur; en fazla 3 tur.",
       "notesInFlow": true,
@@ -1015,7 +1015,7 @@
       "typeVersion": 3.1
     },
     {
-      "id": "323858ee-5c8e-4a1e-b7bb-c97037576116",
+      "id": "7c606190-545c-4c71-a507-52fb4068349a",
       "name": "Şifa yanıt şeması",
       "parameters": {
         "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"mode\": {\n      \"type\": \"string\",\n      \"description\": \"chat, greeting, symptom_analysis, booking\"\n    },\n    \"source\": {\n      \"type\": \"string\",\n      \"description\": \"Alt ajan çağırdıysan: semptom_ajani veya randevu_ajani; yoksa boş\"\n    },\n    \"reply\": {\n      \"type\": \"string\",\n      \"description\": \"Yalnızca kendin cevapladıysan\"\n    },\n    \"mood\": {\n      \"type\": \"string\",\n      \"description\": \"calm, worried, sad, lonely, anxious, angry, neutral\"\n    },\n    \"urgency\": {\n      \"type\": \"string\",\n      \"description\": \"none, self_care, routine, soon, emergency\"\n    },\n    \"self_harm_risk\": {\n      \"type\": \"boolean\"\n    },\n    \"profile_updates\": {\n      \"type\": \"object\",\n      \"description\": \"Kullanıcının açıkça beyan ettiği profil bilgileri. Yeni bilgi yoksa boş nesne.\",\n      \"properties\": {\n        \"display_name\": {\n          \"type\": \"string\"\n        },\n        \"age\": {\n          \"type\": \"integer\",\n          \"description\": \"Yaş (yıl)\"\n        },\n        \"age_declined\": {\n          \"type\": \"boolean\"\n        },\n        \"sex\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"female\",\n            \"male\",\n            \"other\",\n            \"declined\"\n          ]\n        },\n        \"history_status\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"provided\",\n            \"none\",\n            \"declined\"\n          ]\n        },\n        \"conditions_add\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"conditions_remove\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"medications_add\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"medications_remove\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"allergies_add\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"allergies_remove\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    }\n  },\n  \"required\": [\n    \"mode\"\n  ]\n}",
@@ -1029,7 +1029,7 @@
       "typeVersion": 1.3
     },
     {
-      "id": "f990ef16-9c0c-433b-ae2a-f87e5eed47e8",
+      "id": "044dbaf2-633d-4373-8c9d-fedc5571443c",
       "name": "Yanıt gönder",
       "parameters": {
         "options": {
@@ -1046,7 +1046,7 @@
       "typeVersion": 1.5
     },
     {
-      "id": "1adeb54d-de72-4977-943b-49875335784f",
+      "id": "461514d7-f845-4792-803b-1a18f4ab578e",
       "name": "Yanıtı hazırla",
       "parameters": {
         "assignments": {

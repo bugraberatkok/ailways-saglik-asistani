@@ -1,11 +1,14 @@
 // frontend/ klasörünü yerel geliştirme için sunar (bağımlılıksız). Kullanım: npm run serve
+// TEST arayüzü (npm run serve:test, :5174): önce frontend-test/, bulunamayan dosya frontend/'ten
+// (ui.js, api.js… ortak; config.js, app.js, index.html teste özel). Canlı arayüz değişmez.
 import { createServer } from 'node:http';
 import { createReadStream, statSync } from 'node:fs';
 import path from 'node:path';
 import { ROOT_DIR } from './lib/env.mjs';
 
-const PUBLIC_DIR = path.join(ROOT_DIR, 'frontend');
-const PORT = Number(process.env.PORT ?? 5173);
+const TEST = process.argv.includes('--test');
+const PUBLIC_DIRS = (TEST ? ['frontend-test', 'frontend'] : ['frontend']).map((dir) => path.join(ROOT_DIR, dir));
+const PORT = Number(process.env.PORT ?? (TEST ? 5174 : 5173));
 const HOST = process.env.HOST ?? '127.0.0.1';
 
 const CONTENT_TYPES = {
@@ -27,17 +30,22 @@ createServer((req, res) => {
     res.writeHead(400).end();
     return;
   }
-  const filePath = path.normalize(path.join(PUBLIC_DIR, requested));
+  const candidates = PUBLIC_DIRS.map((dir) => ({ dir, file: path.normalize(path.join(dir, requested)) }));
 
   // Dizin dışına çıkmayı (../) engelle.
-  if (!filePath.startsWith(PUBLIC_DIR + path.sep)) {
+  if (candidates.some(({ dir, file }) => !file.startsWith(dir + path.sep))) {
     res.writeHead(403).end();
     return;
   }
 
-  try {
-    if (!statSync(filePath).isFile()) throw new Error('not a file');
-  } catch {
+  const filePath = candidates.map(({ file }) => file).find((file) => {
+    try {
+      return statSync(file).isFile();
+    } catch {
+      return false;
+    }
+  });
+  if (!filePath) {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Bulunamadı');
     return;
   }
@@ -49,5 +57,5 @@ createServer((req, res) => {
   });
   createReadStream(filePath).pipe(res);
 }).listen(PORT, HOST, () => {
-  console.log(`Frontend: http://localhost:${PORT}`);
+  console.log(`${TEST ? 'TEST arayüzü' : 'Frontend'}: http://localhost:${PORT}`);
 });

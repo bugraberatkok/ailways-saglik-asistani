@@ -1,0 +1,5 @@
+/* TEST arayüzü: canlı arayüzün stilleri + bu klasördeki sınıflar. Çıktı: frontend-test/dist/styles.css */
+@import "../../frontend/src/styles.css";
+
+@source "../index.html";
+@source "./";

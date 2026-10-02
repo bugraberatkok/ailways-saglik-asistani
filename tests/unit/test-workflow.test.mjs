@@ -32,6 +32,13 @@ test('canlıdan ayrı: farklı ad ve webhook yolu, aynı node yapısı', () => {
   assert.equal(wf.nodes.filter((n) => n.type === 'n8n-nodes-base.code').length, 2);
 });
 
+test('CORS: test arayüzü (:5174) izinli; canlı webhook\'un origin listesi değişmedi', () => {
+  const origins = node('POST /chat').parameters.options.allowedOrigins.split(',');
+  assert.ok(origins.includes('http://localhost:5174') && origins.includes('http://127.0.0.1:5174'));
+  const liveOrigins = live.nodes.find((n) => n.type === 'n8n-nodes-base.webhook').parameters.options.allowedOrigins;
+  assert.ok(!liveOrigins.includes('5174'));
+});
+
 test('prompt\'lar veritabanından: bağlam sorgusu ve tüm ajanların system mesajı', () => {
   assert.match(node('DB: bağlamı yükle').parameters.query, /health\.get_agent_prompts\(\) as prompts/);
   const expected = { 'Şifa (ana ajan)': 'main', semptom_ajani: 'semptom', randevu_ajani: 'randevu', denetci_ajani: 'denetci' };
@@ -130,6 +137,20 @@ test('Çıktı kontrolü: teklif ve randevu kimliği; tur sınırına takılan �
   });
   assert.equal(booked.expects_booking, true);
   assert.equal(booked.pending_action, null);
+});
+
+test('Çıktı kontrolü: etiket biçimi toleranslı (kalın, küçük harf, Türkçe harfsiz)', async () => {
+  const turn = await check({
+    output: { mode: 'booking', source: 'randevu_ajani' },
+    intermediateSteps: [{ action: { tool: 'randevu_ajani' }, observation: observed(`**Yanıt:** Salı 15:00 uygun.\n**TEKLIF:** ${SLOT} = Salı 15:00 · Dr. A`) }],
+  });
+  assert.equal(turn.assistant_reply, 'Salı 15:00 uygun.');
+  assert.equal(turn.pending_action.slots[0].slot_id, SLOT);
+  const symptom = await check({
+    output: { mode: 'symptom_analysis', source: 'semptom_ajani' },
+    intermediateSteps: [{ action: { tool: 'semptom_ajani' }, observation: observed('YANIT: Geçmiş olsun.\n**Degerlendirme:** baş ağrısı | routine | Nöroloji') }],
+  });
+  assert.deepEqual(symptom.symptom_report, { summary: 'baş ağrısı', urgency: 'routine', department: 'Nöroloji' });
 });
 
 test('Çıktı kontrolü: ana ajan kendisi cevapladıysa onun yanıtı; hiç yanıt yoksa hata', async () => {
