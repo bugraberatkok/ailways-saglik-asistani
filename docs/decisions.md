@@ -72,3 +72,9 @@ Canlıdan ayrı workflow ve arayüzde denendi (README → "Token/gecikme TEST ak
 | ADR-27 | **Ajan prompt'ları veritabanında** (`health.agent_prompts`; n8n `health.get_agent_prompts()` ile okur, arayüz `public.agent_prompts_list/_set/_reset`). Prompt eksikse ajan çalışmaz (`prompt_missing`). Düzenleme anahtarsız (yalnızca test). | 🧪 TEST'te; tarayıcıda düzenle → kullan → geri al denendi |
 | ADR-28 | **Alt ajan yanıtı ara adımlardan okunur:** alt ajanlar `YANIT:` / `DEĞERLENDİRME:` / `TEKLİF:` / `RANDEVU:` satırları yazar; ana ajan metni kopyalamaz, yalnızca `source` bildirir. Çıktı kontrolü etiketleri toleranslı okur, kimlikleri UUID olarak doğrular. | 🧪 TEST'te |
 | ADR-29 | **Ajan başına bağlam dilimi:** ana ajana profil + son 8 mesaj (asistan 300, kullanıcı 400 karakter); semptoma geçmiş kayıtlar + son 4; randevuya randevular, bekleyen teklif, önerilen bölüm + son 2. Tur sınırı 3/2/6/2. Denetçi yalnızca kendine zarar verme riskinde. | 🧪 Tur başına ≈ %25–35 daha az token (sohbet 1,85k / ~2,9k; semptom 5,4k / 8,0k; randevu 8,0k / 9,4–12,3k), çağrı sayısı aynı |
+
+### Canlı · düzenlenebilir sade talimatlar (2026-10-02)
+
+| ID | Karar | Durum |
+|---|---|---|
+| ADR-30 | **Canlı ajan talimatları iki parça:** insanın okuyup düzenleyeceği sade davranış metni veritabanında (`health.agent_prompts`, `flow = 'canli'`; canlı arayüzde *Prompt'lar*), modelin uyması gereken teknik ek (araç adları, yanıt alanları, satır biçimi, bölüm listesi) ajan node'unda sabit. Metin eksikse `prompt_missing` (503). Test akışı aynı tabloda `flow = 'test'` satırlarını kullanır. ADR-27'yi canlıya genişletir. | ✅ Sohbet, selamlama, semptom, randevu teklifi ve oluşturma canlıda denendi (13 Gemini çağrısı); token kullanımı değişmedi |

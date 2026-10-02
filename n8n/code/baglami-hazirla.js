@@ -8,6 +8,13 @@ const request = $('İsteği normalize et').first().json;
 const ctx = $json.context;
 const profile = ctx.profile ?? null;
 
+// Ajanların davranış metinleri veritabanından gelir (arayüzde "Prompt'lar" ile düzenlenir); teknik ek
+// ajan node'larında sabittir. Metin eksikse ajan boş talimatla çalışmasın: hata "Hatalar" bandına gider.
+const prompts = $json.prompts ?? {};
+for (const key of ['main', 'semptom', 'randevu', 'denetci']) {
+  if (typeof prompts[key] !== 'string' || prompts[key].trim().length < 20) throw new Error(`prompt_missing: ${key}`);
+}
+
 // Eksik profil alanı = henüz sorulmamış ("unknown"). "Paylaşmak istemiyorum" eksik sayılmaz.
 const REQUIRED = { age: 'age_status', sex: 'sex', medical_history: 'history_status' };
 const missingProfileFields = Object.keys(REQUIRED)
@@ -96,6 +103,7 @@ return {
     active_module: ctx.active_module ?? null,
     pending_action: ctx.pending_action ?? null,
     appointments: ctx.appointments ?? [],
+    prompts,
     prompt_input: promptInput,
   },
 };

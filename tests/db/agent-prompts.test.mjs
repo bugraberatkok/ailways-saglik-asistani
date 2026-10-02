@@ -1,4 +1,4 @@
-// TEST akışı · ajan prompt'ları: n8n okuma, arayüz listele/kaydet/varsayılana dön, yetkiler.
+// Ajan prompt'ları (canlı ve TEST akışı): n8n okuma, arayüz listele/kaydet/varsayılana dön, yetkiler.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { connectAdmin, connectAppRole } from '../../scripts/lib/db.mjs';
@@ -23,7 +23,9 @@ before(async () => {
 });
 
 after(async () => {
-  for (const key of ['main', 'semptom', 'randevu', 'denetci']) await admin.query('select public.agent_prompts_reset($1)', [key]);
+  for (const flow of ['test', 'canli']) {
+    for (const key of ['main', 'semptom', 'randevu', 'denetci']) await admin.query('select public.agent_prompts_reset($1, $2)', [key, flow]);
+  }
   await app?.end();
   await admin?.end();
 });
@@ -63,4 +65,24 @@ test('anon rolü sarmalayıcıları çağırabilir, health fonksiyonunu ve tablo
   assert.equal(r.key, 'denetci');
   await assert.rejects(asAnon('select health.get_agent_prompts()'), /permission denied/);
   await assert.rejects(asAnon('select * from health.agent_prompts'), /permission denied/);
+});
+
+test("canlı ve test akışının prompt'ları ayrıdır; canlı metin sade dildedir", async () => {
+  const { rows: [{ canli, test: testFlow }] } = await app.query("select health.get_agent_prompts('canli') as canli, health.get_agent_prompts('test') as test");
+  assert.deepEqual(Object.keys(canli).sort(), ['denetci', 'main', 'randevu', 'semptom']);
+  assert.notEqual(canli.main, testFlow.main);
+  // Davranış metninde teknik ifade yok (araç/alan adları, ok işareti, etiketler workflow'daki teknik ekte).
+  for (const [key, text] of Object.entries(canli)) {
+    assert.doesNotMatch(text, /→|mode=|_ajani|<[a-z_]+>|YANIT:|TEKLİF:|slot_id/, key);
+  }
+
+  const text = "Sen Şifa'sın. CANLI düzenleme testi; test akışını etkilememeli.";
+  await admin.query("select public.agent_prompts_set('main', $1, 'canli')", [text]);
+  const { rows: [{ c, t }] } = await app.query("select health.get_agent_prompts('canli') ->> 'main' as c, health.get_agent_prompts() ->> 'main' as t");
+  assert.equal(c, text);
+  assert.equal(t, testFlow.main, 'parametresiz çağrı test akışını okur, canlı düzenlemeden etkilenmez');
+
+  const { r } = await asAnon("select public.agent_prompts_list('canli') as r");
+  assert.equal(r.find((p) => p.key === 'main').is_default, false);
+  await admin.query("select public.agent_prompts_reset('main', 'canli')");
 });

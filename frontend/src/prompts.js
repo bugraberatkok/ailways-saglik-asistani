@@ -1,6 +1,7 @@
-// Prompt'lar paneli: ajan prompt'larını Supabase'ten okur, kaydeder, varsayılana döndürür.
+// Prompt'lar paneli: ajanların talimat metinlerini Supabase'ten okur, kaydeder, varsayılana döndürür.
 // public.agent_prompts_list / _set / _reset (publishable anahtar). n8n bir sonraki mesajda yeni metni okur.
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
+// Canlı ve test arayüzü bu dosyayı paylaşır; hangi akışın metinleri olduğu config.js'teki PROMPT_FLOW'dadır.
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, PROMPT_FLOW } from './config.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -41,7 +42,10 @@ const AGENTS = {
   main: { name: 'Şifa · Ana asistan', hint: 'Her mesajı karşılar; sohbeti kendisi yanıtlar, gerekince uzmanı çağırır.' },
   semptom: { name: 'Semptom uzmanı', hint: 'Şikayeti değerlendirir, aciliyeti ve uygun bölümü belirler.' },
   randevu: { name: 'Randevu asistanı', hint: 'Boş saatleri bulur; randevu alır ya da iptal eder.' },
-  denetci: { name: 'Kriz denetçisi', hint: 'Yalnızca kendine zarar verme riski olan yanıtları kontrol eder.' },
+  // Canlıda denetçi emin olunamayan her yanıta bakar; TEST akışında yalnızca kriz riskinde çağrılır.
+  denetci: PROMPT_FLOW === 'test'
+    ? { name: 'Kriz denetçisi', hint: 'Yalnızca kendine zarar verme riski olan yanıtları kontrol eder.' }
+    : { name: 'Yanıt denetçisi', hint: 'Ana asistanın emin olmadığı yanıtları (ilaç, tanı, ruhsal kriz) kullanıcıya gitmeden kontrol eder.' },
 };
 
 let selectedKey = 'main';
@@ -65,9 +69,9 @@ function refreshState() {
   el.badge.textContent = dirty ? 'kaydedilmedi' : prompt?.is_default ? 'varsayılan' : 'düzenlenmiş';
 }
 
-const TAB = 'rounded-xl px-3 py-2.5 text-sm font-medium ring-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600';
-const TAB_ON = 'bg-amber-600 text-white ring-amber-600 shadow-sm';
-const TAB_OFF = 'bg-white text-slate-700 ring-slate-300 hover:bg-amber-50 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800';
+const TAB = 'rounded-xl px-3 py-2.5 text-sm font-medium ring-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600';
+const TAB_ON = 'bg-teal-600 text-white ring-teal-600 shadow-sm';
+const TAB_OFF = 'bg-white text-slate-700 ring-slate-300 hover:bg-teal-50 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800';
 
 function renderTabs() {
   el.tabs.replaceChildren(...prompts.map((p) => {
@@ -104,7 +108,7 @@ function show(key) {
 
 async function load(key) {
   setStatus('Yükleniyor…');
-  prompts = (await rpc('agent_prompts_list', {})) ?? [];
+  prompts = (await rpc('agent_prompts_list', { p_flow: PROMPT_FLOW })) ?? [];
   show(key);
 }
 
@@ -133,11 +137,11 @@ export function initPromptsPanel() {
   el.close.addEventListener('click', () => el.dialog.close());
   el.text.addEventListener('input', refreshState);
   el.save.addEventListener('click', () => run(async () => {
-    apply(await rpc('agent_prompts_set', { p_key: selectedKey, p_content: el.text.value }));
+    apply(await rpc('agent_prompts_set', { p_key: selectedKey, p_content: el.text.value, p_flow: PROMPT_FLOW }));
     setStatus('Kaydedildi. Bir sonraki mesajda kullanılacak.', 'ok');
   }));
   el.reset.addEventListener('click', () => run(async () => {
-    apply(await rpc('agent_prompts_reset', { p_key: selectedKey }));
+    apply(await rpc('agent_prompts_reset', { p_key: selectedKey, p_flow: PROMPT_FLOW }));
     setStatus('Varsayılan metin geri yüklendi.', 'ok');
   }));
 }

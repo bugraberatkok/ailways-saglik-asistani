@@ -9,3 +9,6 @@ export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_O3kfIZ2M20-orVWe4hbsJA_7
 export const REQUEST_TIMEOUT_MS = 125_000;
 
 export const MAX_MESSAGE_LENGTH = 2000;
+
+// Prompt'lar penceresi hangi akışın talimatlarını düzenler (health.agent_prompts.flow).
+export const PROMPT_FLOW = 'test';

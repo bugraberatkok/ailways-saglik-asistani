@@ -1,13 +1,13 @@
 -- =============================================================================
 -- TEST akışı · Ajan prompt'larının varsayılan metinleri
 -- db:seed çalıştırıldığında güncel metinler de varsayılana döner (demo sıfırlama).
--- Canlı workflow bu tabloyu kullanmaz.
+-- Canlı akışın metinleri: 04_agent_prompts_live.sql (flow = 'canli').
 -- =============================================================================
 
 begin;
 
-insert into health.agent_prompts (key, title, content, default_content)
-select key, title, body, body
+insert into health.agent_prompts (flow, key, title, content, default_content)
+select 'test', key, title, body, body
 from (values
 ('main', 'Şifa (ana ajan)', $prompt$Sen "Şifa"sın: Ailways'in sağlık asistanı. Doktor değilsin: tanı koymaz, ilaç veya doz önermezsin.
 
@@ -58,7 +58,7 @@ RANDEVU: <appointment_id>   (randevu oluşturduysan; yoksa yazma)$prompt$),
 Kontrol et: yanıtta "112" ve yalnız olmadığını hissettiren bir cümle var mı; sıcak ve yargılamayan bir ton mu; tıbbi tavsiye, ilaç veya psikolog/terapist yönlendirmesi var mı; hitap modun diline uygun mu (sohbette "sen", diğer modlarda "siz").
 Uygunsa yalnızca "UYGUN" yaz. Değilse yalnızca düzeltilmiş yanıtı yaz: kısa tut, 112 cümlesini koru, yeni bilgi ekleme.$prompt$)
 ) as seed(key, title, body)
-on conflict (key) do update
+on conflict (flow, key) do update
   set title = excluded.title,
       content = excluded.content,
       default_content = excluded.default_content;

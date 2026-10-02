@@ -4,6 +4,7 @@ import { api } from './api.js';
 import { storage } from './storage.js';
 import * as ui from './ui.js';
 import { initThemeToggle } from './theme.js';
+import { initPromptsPanel } from './prompts.js';
 
 const state = {
   demoProfiles: [],
@@ -242,4 +243,5 @@ async function init() {
 }
 
 initThemeToggle(document.getElementById('theme-toggle'));
+initPromptsPanel();
 init();

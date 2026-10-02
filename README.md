@@ -12,7 +12,7 @@ Kullanıcıyı ID'si ile tanıyan, niyetini ve ruh halini anlayan bir sohbet asi
 |---|---|
 | Sohbet akışı ve tüm yapay zeka mantığı | **n8n**: tek AI Agent (Şifa) + 3 alt ajan + 4 veritabanı aracı |
 | Veritabanı | **Supabase** (PostgreSQL) |
-| Yapay zeka | **Google Gemini** (`gemini-3.5-flash-lite`, yedek `gemini-3.5-flash`). Fine-tuning yok; davranış system prompt ile. |
+| Yapay zeka | **Google Gemini** (`gemini-3.5-flash-lite`, yedek `gemini-3.5-flash`). Fine-tuning yok; davranış system prompt ile. Prompt'lar arayüzdeki **Prompt'lar** düğmesinden sade dille düzenlenir (aşağıya bakın). |
 | Arayüz | **HTML + Tailwind CSS** + vanilla JavaScript, tek sayfa, açık/koyu tema |
 
 > ⚠️ Staj demosudur. Kullanıcılar, doktorlar ve sağlık verileri **sentetiktir**. Asistan tanı koymaz, ilaç önermez.
@@ -52,7 +52,8 @@ Workflow'un node node anlatımı: **[docs/sunum.md](docs/sunum.md)** · Kararlar
 ```text
 frontend/                 Arayüz (index.html, src/*.js, dist/styles.css)
 n8n/workflows/health-assistant.json   ← n8n'e içe aktarılabilir workflow
-n8n/prompts/*.md, n8n/code/*.js       ← workflow'daki prompt ve kodların okunabilir kopyası (n8n:pull üretir)
+n8n/prompts/*.md, n8n/code/*.js       ← workflow'daki talimat (teknik ek) ve kodların okunabilir kopyası (n8n:pull üretir)
+supabase/seed/04_agent_prompts_live.sql ← ajanların düzenlenebilir davranış metinlerinin varsayılanı
 supabase/migrations/*.sql             ← tablo yapısı ve fonksiyonlar (SQL dökümü)
 supabase/seed/*.sql                   ← 15 demo kullanıcı, 12 doktor, randevu saatleri
 scripts/                  migrate, seed, n8n pull/push, yerel sunucu
@@ -60,6 +61,17 @@ tests/unit|db|e2e         workflow sözleşmesi, veritabanı, canlı uçtan uca
 ```
 
 Workflow'un kaynağı **n8n arayüzüdür**. Değişiklikten sonra `npm run n8n:pull` repodaki export'u günceller.
+
+### Asistan talimatları (Prompt'lar)
+
+Her ajanın talimatı iki parçadır:
+- **Davranış metni** — sade Türkçe, maddeli; veritabanında (`health.agent_prompts`, `flow = 'canli'`). Arayüzün üstündeki
+  **Prompt'lar** düğmesi dört sekme açar (Şifa · Ana asistan, Semptom uzmanı, Randevu asistanı, Yanıt denetçisi);
+  *Kaydet* ile değişiklik bir sonraki mesajda kullanılır, *Varsayılana dön* ilk metni geri yükler.
+- **Teknik ek** — araç adları, yanıt alanları, satır biçimi ve bölüm listesi; ajan node'unda sabittir ve davranış
+  metninin sonuna eklenir. Davranış metnini düzenleyen biri teknik biçimi bozamaz.
+
+Düzenleme demo kapsamında herkese açıktır (kimlik doğrulama yok). `npm run db:seed` tüm metinleri varsayılana döndürür.
 
 ---
 
@@ -100,7 +112,7 @@ Node yapısı canlıyla aynıdır; farklar:
 
 | Konu | Canlı | TEST |
 |---|---|---|
-| Ajan prompt'ları | workflow içinde | veritabanında (`health.agent_prompts`), test arayüzünden düzenlenebilir |
+| Ajan prompt'ları | veritabanında (`flow = 'canli'`), sade davranış metni + sabit teknik ek | veritabanında (`flow = 'test'`), tek parça metin |
 | Alt ajan yanıtı | ana ajan metni kopyalayıp final JSON'a yazar | Çıktı kontrolü alt ajanın araç sonucundan okur (`YANIT:` / `DEĞERLENDİRME:` / `TEKLİF:` / `RANDEVU:` satırları) |
 | Bağlam | tüm ajanlara aynı tam bağlam | her ajana kendi dilimi; ana ajana son 8 mesaj (asistan 300, kullanıcı 400 karakter) |
 | Yanıt şeması | 9 alan (2 zorunlu) | 7 alan, yalnızca `mode` zorunlu |
@@ -124,7 +136,7 @@ Statik talimat (system mesajı) önde, değişen bağlam kullanıcı mesajında 
 **Test arayüzü:** `npm run serve:test` → http://localhost:5174. Yalnızca TEST workflow'una bağlanır; demo profilleri yoktur,
 "+ Test kullanıcısı" ile bu tarayıcıya özel kullanıcılar oluşturulur. Üstteki **Prompt'lar** düğmesi açılan pencerede dört sekme
 gösterir (Şifa · Ana asistan, Semptom uzmanı, Randevu asistanı, Kriz denetçisi); *Kaydet* ile değişiklik bir sonraki mesajda kullanılır, *Varsayılana dön* ilk metni geri yükler.
-`frontend-test/` yalnızca farklı olan dosyaları içerir (index.html, config.js, app.js, prompts.js); diğer modüller canlı
+`frontend-test/` yalnızca farklı olan dosyaları içerir (index.html, config.js, app.js); Prompt'lar penceresi canlıyla ortaktır (`PROMPT_FLOW`); diğer modüller canlı
 `frontend/src`'den sunulur, canlı arayüz değişmez. Stil: `npm run build:css:test`. `frontend-test/src/app.js` canlı `app.js`'in kopyasıdır; canlıda değişiklik olursa ikisini karşılaştırın.
 
 **Canlıya alma ayrı bir karardır:** bu optimizasyonlar şu an yalnızca TEST akışındadır (kararlar: [docs/decisions.md](docs/decisions.md) ADR-27–29).
