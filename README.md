@@ -92,6 +92,37 @@ E2E_AI=1 npm run test:e2e      # + PDF'in 3 test senaryosu (≈15–20 Gemini ç
 
 Son çalıştırma (2026-10-01): birim 21/21 · veritabanı 29/29 · uçtan uca 9/9 (yapay zeka senaryoları dahil).
 
+## Token/gecikme TEST akışı (canlıdan ayrı)
+
+Canlı sisteme dokunmadan token tasarrufu denemek için ayrı bir workflow: **Sağlık Asistanı v2 · TEST**
+(`/webhook/health-assistant-test/chat`, export: `n8n/workflows/health-assistant-test.json`, okunabilir kopyalar: `n8n/test/`).
+Node yapısı canlıyla aynıdır; farklar:
+
+| Konu | Canlı | TEST |
+|---|---|---|
+| Ajan prompt'ları | workflow içinde | veritabanında (`health.agent_prompts`), test arayüzünden düzenlenebilir |
+| Alt ajan yanıtı | ana ajan metni kopyalayıp final JSON'a yazar | Çıktı kontrolü alt ajanın araç sonucundan okur (`YANIT:` / `DEĞERLENDİRME:` / `TEKLİF:` / `RANDEVU:` satırları) |
+| Bağlam | tüm ajanlara aynı tam bağlam | her ajana kendi dilimi; ana ajana son 8 mesaj (asistan 300, kullanıcı 400 karakter) |
+| Yanıt şeması | 9 alan (2 zorunlu) | 7 alan, yalnızca `mode` zorunlu |
+| Denetçi | psikolojik destek yanıtlarında | yalnızca kendine zarar verme riskinde |
+| Tur sınırı (ana / semptom / randevu / denetçi) | 6 / 6 / 6 / 6 | 3 / 2 / 6 / 2 |
+
+Statik talimat (system mesajı) önde, değişen bağlam kullanıcı mesajında kalır; Gemini'nin önbelleği bozulmaz.
+
+**Ölçüm (2026-10-02, Gemini `usageMetadata`, tur başına toplam; her tür için tek deneme):**
+
+| Tur | Canlı | TEST | Fark |
+|---|---|---|---|
+| Sohbet / selamlama (1 çağrı) | ≈ 2.650–3.230 token | 1.850 token | ≈ −35 % |
+| Semptom analizi (3 çağrı) | 8.003 token | 5.383 token | −33 % |
+| Randevu: saat teklifi (4–5 çağrı) | 9.377–12.321 token | 8.024 token (4 çağrı) | ≈ −25 % |
+| Randevu: oluşturma (4 çağrı) | 9.805–11.797 token | 7.951 token | ≈ −25 % |
+
+Çağrı sayısı değişmedi (karar hâlâ ajanda). Süreler model yüküne göre 2–30 sn arasında oynadığı için tek denemeyle karşılaştırılmadı.
+İlk denemede randevu ajanının 4 tur sınırı hafta sonu aramasında yetmedi (10 çağrı, 17,6 bin token); sınır 6'ya çıkarıldı.
+
+Notlar: `npm run n8n:pull -- --test` test export'unu günceller (`N8N_TEST_WORKFLOW_ID`). `npm run db:seed` düzenlenmiş prompt'ları varsayılana döndürür.
+
 ## Bilinen sınırlamalar
 - **Kimlik doğrulama yok.** Kullanıcı, PDF'te istendiği gibi ID ile tanınır; ID'yi bilen biri o kullanıcının verisini görebilir. Gerçek kullanımda Supabase Auth zorunludur.
 - **Gemini ücretsiz katmanı:** dakikalık ve günlük istek sınırları vardır. Sınır dolarsa kullanıcı "biraz bekleyip tekrar deneyin" mesajı görür; aynı mesaj tekrar gönderildiğinde çift kayıt oluşmaz.
