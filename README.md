@@ -122,8 +122,8 @@ Statik talimat (system mesajı) önde, değişen bağlam kullanıcı mesajında 
 İlk denemede randevu ajanının 4 tur sınırı hafta sonu aramasında yetmedi (10 çağrı, 17,6 bin token); sınır 6'ya çıkarıldı.
 
 **Test arayüzü:** `npm run serve:test` → http://localhost:5174. Yalnızca TEST workflow'una bağlanır; demo profilleri yoktur,
-"+ Test kullanıcısı" ile bu tarayıcıya özel kullanıcılar oluşturulur. Üstteki **Prompt'lar** düğmesi dört ajan prompt'unu
-gösterir; *Kaydet* ile değişiklik bir sonraki mesajda kullanılır, *Varsayılana dön* ilk metni geri yükler.
+"+ Test kullanıcısı" ile bu tarayıcıya özel kullanıcılar oluşturulur. Üstteki **Prompt'lar** düğmesi açılan pencerede dört sekme
+gösterir (Şifa · Ana asistan, Semptom uzmanı, Randevu asistanı, Kriz denetçisi); *Kaydet* ile değişiklik bir sonraki mesajda kullanılır, *Varsayılana dön* ilk metni geri yükler.
 `frontend-test/` yalnızca farklı olan dosyaları içerir (index.html, config.js, app.js, prompts.js); diğer modüller canlı
 `frontend/src`'den sunulur, canlı arayüz değişmez. Stil: `npm run build:css:test`. `frontend-test/src/app.js` canlı `app.js`'in kopyasıdır; canlıda değişiklik olursa ikisini karşılaştırın.
 

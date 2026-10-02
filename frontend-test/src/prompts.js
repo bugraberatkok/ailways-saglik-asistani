@@ -7,7 +7,8 @@ const el = {
   open: $('prompts-btn'),
   dialog: $('prompts-dialog'),
   close: $('prompts-close'),
-  select: $('prompt-select'),
+  tabs: $('prompt-tabs'),
+  hint: $('prompt-hint'),
   badge: $('prompt-badge'),
   text: $('prompt-text'),
   save: $('prompt-save'),
@@ -35,10 +36,20 @@ async function rpc(name, args) {
   return data;
 }
 
+// Sekmelerde görünen adlar ve kısa açıklamalar (veritabanındaki teknik başlık yerine).
+const AGENTS = {
+  main: { name: 'Şifa · Ana asistan', hint: 'Her mesajı karşılar; sohbeti kendisi yanıtlar, gerekince uzmanı çağırır.' },
+  semptom: { name: 'Semptom uzmanı', hint: 'Şikayeti değerlendirir, aciliyeti ve uygun bölümü belirler.' },
+  randevu: { name: 'Randevu asistanı', hint: 'Boş saatleri bulur; randevu alır ya da iptal eder.' },
+  denetci: { name: 'Kriz denetçisi', hint: 'Yalnızca kendine zarar verme riski olan yanıtları kontrol eder.' },
+};
+
+let selectedKey = 'main';
+let confirmSwitchTo = null; // kaydedilmemiş değişiklikle sekme değiştirme: ikinci tıklamada vazgeçilir
 let prompts = [];
 let saved = ''; // seçili prompt'un veritabanındaki metni (kaydedilmemiş değişikliği göstermek için)
 
-const current = () => prompts.find((p) => p.key === el.select.value);
+const current = () => prompts.find((p) => p.key === selectedKey);
 
 function setStatus(text, tone = 'muted') {
   el.status.textContent = text;
@@ -54,10 +65,38 @@ function refreshState() {
   el.badge.textContent = dirty ? 'kaydedilmedi' : prompt?.is_default ? 'varsayılan' : 'düzenlenmiş';
 }
 
+const TAB = 'rounded-xl px-3 py-2.5 text-sm font-medium ring-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600';
+const TAB_ON = 'bg-amber-600 text-white ring-amber-600 shadow-sm';
+const TAB_OFF = 'bg-white text-slate-700 ring-slate-300 hover:bg-amber-50 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800';
+
+function renderTabs() {
+  el.tabs.replaceChildren(...prompts.map((p) => {
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.role = 'tab';
+    tab.textContent = AGENTS[p.key]?.name ?? p.title;
+    tab.setAttribute('aria-selected', String(p.key === selectedKey));
+    tab.className = `${TAB} ${p.key === selectedKey ? TAB_ON : TAB_OFF}`;
+    tab.addEventListener('click', () => {
+      // Kaydedilmemiş değişiklik sessizce kaybolmasın: ilk tıklamada uyar, ikincide vazgeç.
+      if (p.key !== selectedKey && el.text.value !== saved && confirmSwitchTo !== p.key) {
+        confirmSwitchTo = p.key;
+        setStatus('Kaydedilmemiş değişiklik var. Kaydetmeden geçmek için sekmeye tekrar tıklayın.', 'error');
+        return;
+      }
+      show(p.key);
+    });
+    return tab;
+  }));
+}
+
 function show(key) {
   const prompt = prompts.find((p) => p.key === key) ?? prompts[0];
   if (!prompt) return;
-  el.select.value = prompt.key;
+  selectedKey = prompt.key;
+  confirmSwitchTo = null;
+  renderTabs();
+  el.hint.textContent = AGENTS[prompt.key]?.hint ?? '';
   el.text.value = saved = prompt.content;
   setStatus(prompt.updated_at ? `Son değişiklik: ${new Date(prompt.updated_at).toLocaleString('tr-TR')}` : '');
   refreshState();
@@ -66,7 +105,6 @@ function show(key) {
 async function load(key) {
   setStatus('Yükleniyor…');
   prompts = (await rpc('agent_prompts_list', {})) ?? [];
-  el.select.replaceChildren(...prompts.map((p) => new Option(p.title, p.key)));
   show(key);
 }
 
@@ -90,17 +128,16 @@ export function initPromptsPanel() {
     el.dialog.showModal();
     // Kaydedilmemiş değişiklik varsa yeniden yükleyip silme; yoksa güncel metni getir.
     if (prompts.length && el.text.value !== saved) return;
-    run(() => load(el.select.value));
+    run(() => load(selectedKey));
   });
   el.close.addEventListener('click', () => el.dialog.close());
-  el.select.addEventListener('change', () => show(el.select.value));
   el.text.addEventListener('input', refreshState);
   el.save.addEventListener('click', () => run(async () => {
-    apply(await rpc('agent_prompts_set', { p_key: el.select.value, p_content: el.text.value }));
+    apply(await rpc('agent_prompts_set', { p_key: selectedKey, p_content: el.text.value }));
     setStatus('Kaydedildi. Bir sonraki mesajda kullanılacak.', 'ok');
   }));
   el.reset.addEventListener('click', () => run(async () => {
-    apply(await rpc('agent_prompts_reset', { p_key: el.select.value }));
+    apply(await rpc('agent_prompts_reset', { p_key: selectedKey }));
     setStatus('Varsayılan metin geri yüklendi.', 'ok');
   }));
 }
