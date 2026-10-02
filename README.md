@@ -125,7 +125,9 @@ Statik talimat (system mesajı) önde, değişen bağlam kullanıcı mesajında 
 "+ Test kullanıcısı" ile bu tarayıcıya özel kullanıcılar oluşturulur. Üstteki **Prompt'lar** düğmesi dört ajan prompt'unu
 gösterir; *Kaydet* ile değişiklik bir sonraki mesajda kullanılır, *Varsayılana dön* ilk metni geri yükler.
 `frontend-test/` yalnızca farklı olan dosyaları içerir (index.html, config.js, app.js, prompts.js); diğer modüller canlı
-`frontend/src`'den sunulur, canlı arayüz değişmez. Stil: `npm run build:css:test`.
+`frontend/src`'den sunulur, canlı arayüz değişmez. Stil: `npm run build:css:test`. `frontend-test/src/app.js` canlı `app.js`'in kopyasıdır; canlıda değişiklik olursa ikisini karşılaştırın.
+
+**Canlıya alma ayrı bir karardır:** bu optimizasyonlar şu an yalnızca TEST akışındadır (kararlar: [docs/decisions.md](docs/decisions.md) ADR-27–29).
 
 Notlar: `npm run n8n:pull -- --test` test export'unu günceller (`N8N_TEST_WORKFLOW_ID`). `npm run db:seed` düzenlenmiş prompt'ları varsayılana döndürür.
 

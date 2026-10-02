@@ -62,3 +62,13 @@ Ayrıntı ve gerekçeler: [v2-plan.md](v2-plan.md) §9. Uygulandıkça bu tablo 
 | ADR-24 | **n8n'de yalnızca sohbet akışı.** Profil listesi, geçmiş ve veri silme arayüzden Supabase Data API ile çağrılır (`public.demo_profiles`, `conversation_history`, `delete_user_data`: health fonksiyonlarının ince sarmalayıcıları). Tablolar ve health şeması kapalı kalır. | ✅ 34 → 24 node |
 | ADR-25 | **Gemini: ana `gemini-3.5-flash-lite`, yedek `gemini-3.5-flash`.** Preview model ücretsiz katmanda dakikalık sınıra takılıyor, `3.5-flash` sık 503 veriyordu; ajanın çok adımlı turlarında bu, 90 sn'yi aşan yanıtlara yol açtı. | ✅ Semptom turu ~7 sn, randevu ~9 sn |
 | ADR-26 | **Tek kontrol node'u:** "Çıktı kontrolü" kuralları kodun başındaki tabloda tutar, model çağırmaz; ajan hata verirse yanıt kaydedilmez ve kullanıcı "tekrar deneyin" görür (aynı istek ikinci kez randevu oluşturmaz). | ✅ |
+
+### Token/gecikme TEST akışı (2026-10-02) — canlıya alınmadı
+
+Canlıdan ayrı workflow ve arayüzde denendi (README → "Token/gecikme TEST akışı"). Canlıya alma ayrı bir karardır.
+
+| ID | Karar | Durum |
+|---|---|---|
+| ADR-27 | **Ajan prompt'ları veritabanında** (`health.agent_prompts`; n8n `health.get_agent_prompts()` ile okur, arayüz `public.agent_prompts_list/_set/_reset`). Prompt eksikse ajan çalışmaz (`prompt_missing`). Düzenleme anahtarsız (yalnızca test). | 🧪 TEST'te; tarayıcıda düzenle → kullan → geri al denendi |
+| ADR-28 | **Alt ajan yanıtı ara adımlardan okunur:** alt ajanlar `YANIT:` / `DEĞERLENDİRME:` / `TEKLİF:` / `RANDEVU:` satırları yazar; ana ajan metni kopyalamaz, yalnızca `source` bildirir. Çıktı kontrolü etiketleri toleranslı okur, kimlikleri UUID olarak doğrular. | 🧪 TEST'te |
+| ADR-29 | **Ajan başına bağlam dilimi:** ana ajana profil + son 8 mesaj (asistan 300, kullanıcı 400 karakter); semptoma geçmiş kayıtlar + son 4; randevuya randevular, bekleyen teklif, önerilen bölüm + son 2. Tur sınırı 3/2/6/2. Denetçi yalnızca kendine zarar verme riskinde. | 🧪 Tur başına ≈ %25–35 daha az token (sohbet 1,85k / ~2,9k; semptom 5,4k / 8,0k; randevu 8,0k / 9,4–12,3k), çağrı sayısı aynı |

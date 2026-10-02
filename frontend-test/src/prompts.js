@@ -88,6 +88,8 @@ async function run(action) {
 export function initPromptsPanel() {
   el.open.addEventListener('click', () => {
     el.dialog.showModal();
+    // Kaydedilmemiş değişiklik varsa yeniden yükleyip silme; yoksa güncel metni getir.
+    if (prompts.length && el.text.value !== saved) return;
     run(() => load(el.select.value));
   });
   el.close.addEventListener('click', () => el.dialog.close());
