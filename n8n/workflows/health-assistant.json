@@ -347,13 +347,11 @@
             }
           ]
         },
-        "includeOtherFields": false,
-        "mode": "manual",
         "options": {}
       },
       "position": [
-        1400,
-        -260
+        1408,
+        -256
       ],
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4
@@ -369,7 +367,7 @@
       },
       "position": [
         880,
-        -20
+        -16
       ],
       "type": "n8n-nodes-base.code",
       "typeVersion": 2
@@ -392,8 +390,8 @@
         "toolDescription": "Bir bölümde boş randevu saatlerini getirir. Tarihler YYYY-MM-DD, saatler HH:MM; bilinmeyen alanı boş bırak (\"öğleden sonra\" için baslangic_saati 12:00)."
       },
       "position": [
-        1700,
-        520
+        1712,
+        528
       ],
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6
@@ -409,7 +407,7 @@
         "mode": "runOnceForEachItem"
       },
       "position": [
-        2700,
+        2704,
         0
       ],
       "type": "n8n-nodes-base.code",
@@ -432,8 +430,8 @@
         "query": "select health.get_chat_context($1::uuid, nullif($2, '')::uuid, $3::uuid) as context;"
       },
       "position": [
-        660,
-        -20
+        672,
+        -16
       ],
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6
@@ -455,7 +453,7 @@
         "query": "select health.save_chat_turn($1::jsonb) as saved;"
       },
       "position": [
-        2920,
+        2928,
         0
       ],
       "type": "n8n-nodes-base.postgres",
@@ -467,7 +465,6 @@
       "notes": "✅ Denetçi; ana ajan gerekli görürse çağırır.",
       "notesInFlow": true,
       "parameters": {
-        "hasOutputParser": false,
         "needsFallback": true,
         "options": {
           "maxIterations": 6,
@@ -477,8 +474,8 @@
         "toolDescription": "Bir yanıt taslağını kurallara göre kontrol eder (ilaç/doz/tanı, yönlendirme, \"yapay zeka\" ifadesi, uzunluk, hitap). Yalnızca emin olmadığında çağır. \"UYGUN\" veya düzeltilmiş yanıtı döner."
       },
       "position": [
-        2140,
-        260
+        2144,
+        272
       ],
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 3
@@ -499,8 +496,8 @@
         }
       },
       "position": [
-        1340,
-        260
+        1344,
+        272
       ],
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2
@@ -521,8 +518,8 @@
         }
       },
       "position": [
-        1480,
-        260
+        1488,
+        272
       ],
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.2
@@ -538,7 +535,7 @@
         "responseBody": "={{ JSON.stringify({ request_id: $json.request_id || null, error: { code: $json.code, retryable: ['ai_rate_limited', 'ai_unavailable', 'service_unavailable'].includes($json.code), message: ({\n  invalid_request: 'İstek geçersiz: request_id ve user_id UUID, mesaj 1–2000 karakter olmalı.',\n  conversation_not_found: 'Konuşma bulunamadı.',\n  request_id_conflict: 'Bu request_id başka bir istek için kullanılmış.',\n  demo_profile_protected: 'Demo profillerinin verileri silinemez.',\n  invalid_argument: 'Geçersiz parametre.',\n  ai_rate_limited: 'Yapay zeka servisinin kullanım limiti doldu. Lütfen biraz bekleyip tekrar deneyin.',\n  ai_unavailable: 'Yapay zeka servisine şu anda ulaşılamıyor. Lütfen tekrar deneyin.',\n  service_unavailable: 'Servis geçici olarak yanıt veremiyor. Lütfen tekrar deneyin.'\n})[$json.code] ?? 'Beklenmeyen hata.' } }) }}"
       },
       "position": [
-        1660,
+        1664,
         960
       ],
       "type": "n8n-nodes-base.respondToWebhook",
@@ -566,12 +563,10 @@
             }
           ]
         },
-        "includeOtherFields": false,
-        "mode": "manual",
         "options": {}
       },
       "position": [
-        1380,
+        1392,
         960
       ],
       "type": "n8n-nodes-base.set",
@@ -615,12 +610,10 @@
             }
           ]
         },
-        "includeOtherFields": false,
-        "mode": "manual",
         "options": {}
       },
       "position": [
-        220,
+        224,
         0
       ],
       "type": "n8n-nodes-base.set",
@@ -692,7 +685,7 @@
         "options": {}
       },
       "position": [
-        440,
+        448,
         0
       ],
       "type": "n8n-nodes-base.if",
@@ -709,7 +702,7 @@
       },
       "position": [
         -80,
-        -330
+        -336
       ],
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1
@@ -724,8 +717,8 @@
         "width": 1260
       },
       "position": [
-        1300,
-        -470
+        1312,
+        -464
       ],
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1
@@ -741,7 +734,7 @@
       },
       "position": [
         2640,
-        -330
+        -336
       ],
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1
@@ -756,8 +749,8 @@
         "width": 640
       },
       "position": [
-        1300,
-        820
+        1312,
+        832
       ],
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1
@@ -766,7 +759,6 @@
       "id": "810b13d9-a8e4-4d31-a4f1-669c3a8b54a5",
       "name": "Ön kontrol",
       "parameters": {
-        "mode": "rules",
         "options": {
           "fallbackOutput": "extra",
           "renameFallbackOutput": "Ajana gönder"
@@ -792,7 +784,7 @@
                   "caseSensitive": true,
                   "leftValue": "",
                   "typeValidation": "strict",
-                  "version": 2
+                  "version": 3
                 }
               },
               "outputKey": "Tekrar istek",
@@ -813,10 +805,10 @@
                   }
                 ],
                 "options": {
-                  "caseSensitive": false,
+                  "caseSensitive": true,
                   "leftValue": "",
                   "typeValidation": "strict",
-                  "version": 2
+                  "version": 3
                 }
               },
               "outputKey": "🔴 Kritik kelime",
@@ -841,7 +833,7 @@
                   "caseSensitive": true,
                   "leftValue": "",
                   "typeValidation": "strict",
-                  "version": 2
+                  "version": 3
                 }
               },
               "outputKey": "Konuşma bulunamadı",
@@ -851,8 +843,8 @@
         }
       },
       "position": [
-        1100,
-        -20
+        1104,
+        -16
       ],
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4
@@ -882,7 +874,6 @@
       "notes": "📅 Randevu uzmanı; 4 veritabanı aracı kullanır.",
       "notesInFlow": true,
       "parameters": {
-        "hasOutputParser": false,
         "needsFallback": true,
         "options": {
           "maxIterations": 6,
@@ -892,8 +883,8 @@
         "toolDescription": "Boş saatleri bulur, randevu oluşturur, randevuları listeler veya iptal eder. Randevu, boş saat, randevularım, iptal veya bekleyen teklife verilen \"14:00\" gibi cevaplarda çağır. Girdi: kullanıcının randevu isteği."
       },
       "position": [
-        1900,
-        260
+        1904,
+        272
       ],
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 3
@@ -916,7 +907,7 @@
         "toolDescription": "Kullanıcının bir randevusunu iptal eder. randevu_no bağlamdaki randevular bölümünden alınır."
       },
       "position": [
-        2120,
+        2128,
         640
       ],
       "type": "n8n-nodes-base.postgresTool",
@@ -964,8 +955,8 @@
         "toolDescription": "Kullanıcının yaklaşan ve son randevularını getirir. Kullanıcı kimliği otomatik eklenir."
       },
       "position": [
-        1980,
-        520
+        1984,
+        528
       ],
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6
@@ -976,7 +967,6 @@
       "notes": "🩺 Semptom analizi uzmanı (\"siz\").",
       "notesInFlow": true,
       "parameters": {
-        "hasOutputParser": false,
         "needsFallback": true,
         "options": {
           "maxIterations": 6,
@@ -986,8 +976,8 @@
         "toolDescription": "Bedensel şikayeti kullanıcının profili, geçmiş kayıtları ve randevularıyla birlikte değerlendirir. Profil tamsa ve kullanıcı bir şikayet anlatıyorsa çağır. Girdi: şikayetle ilgili kısa not."
       },
       "position": [
-        1660,
-        260
+        1664,
+        272
       ],
       "type": "@n8n/n8n-nodes-langchain.agentTool",
       "typeVersion": 3
@@ -1009,7 +999,7 @@
         "text": "={{ $json.prompt_input }}"
       },
       "position": [
-        1400,
+        1408,
         0
       ],
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -1023,8 +1013,8 @@
         "schemaType": "manual"
       },
       "position": [
-        2380,
-        260
+        2384,
+        272
       ],
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3
@@ -1060,12 +1050,10 @@
             }
           ]
         },
-        "includeOtherFields": false,
-        "mode": "manual",
         "options": {}
       },
       "position": [
-        3140,
+        3152,
         0
       ],
       "type": "n8n-nodes-base.set",
